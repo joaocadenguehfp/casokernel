@@ -1,88 +1,159 @@
+/* =====================================================================
+   CASO KERNEL · Mesa de Detetive (Noir / Art Déco, anos 30-70)
+   ===================================================================== */
 :root{
-  --paper:#f4ebd9;--paper2:#e5d9c5;--manila:#d9b878;--leather:#6b4a2f;--desk:#34251a;
-  --ink:#2b2621;--amber:#c98a1b;--red:#9b3b2e;--green:#5d7a4a;--mut:#6d6254
+  --paper:#f4ebd9;--paper2:#e5d9c5;--manila:#d3ad6b;--leather:#6b4a2f;--ink:#2b2621;
+  --amber:#c98a1b;--red:#9b3b2e;--green:#5d7a4a;--blue:#1f3a8a;--mut:#6d6254;
+  --hand:"Caveat","Segoe Script","Bradley Hand",cursive;
+  --drop:8px 12px 24px rgba(0,0,0,.6)
 }
 *{box-sizing:border-box}
 html,body{margin:0}
-body{
-  background:var(--desk) repeating-linear-gradient(45deg,rgba(0,0,0,.07) 0 2px,transparent 2px 7px);
-  color:var(--ink);font:17px/1.6 "Special Elite","Courier New",monospace;min-height:100vh;
-  padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)
-}
 button{font:inherit;color:inherit;cursor:pointer}
-button:focus-visible,input:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
+button:focus-visible,input:focus-visible{outline:3px solid var(--amber);outline-offset:3px}
 
-/* Cabeçalho e medidor de vida */
-header{display:flex;flex-wrap:wrap;align-items:center;gap:12px;max-width:1000px;margin:auto;padding:16px;color:var(--paper)}
-h1{font:1.5rem/1.1 "Alfa Slab One",serif;margin:0;flex:1 1 220px;letter-spacing:.03em}
-.hpbox{display:flex;align-items:center;gap:8px;flex:1 1 260px}
-.lbl{white-space:nowrap}
-.hp{position:relative;flex:1;height:28px;background:#1d140d;border:3px solid var(--paper);border-radius:6px;overflow:hidden;
-  box-shadow:inset 0 0 8px #000;background-image:repeating-linear-gradient(90deg,transparent 0 9px,rgba(244,235,217,.18) 9px 10px)}
-.hpf{height:100%;width:100%;background:var(--green);transition:width .5s,background .5s;box-shadow:inset 0 -6px 0 rgba(0,0,0,.2)}
+/* ---------- Mesa de madeira, luz de abajur, vinheta e grão ---------- */
+body{
+  min-height:100vh;color:var(--ink);font:17px/1.6 "Special Elite","Courier New",monospace;
+  padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+  background:
+    radial-gradient(ellipse 60% 55% at 50% 38%,rgba(255,196,120,.42),rgba(255,160,70,.12) 55%,transparent 78%),
+    repeating-linear-gradient(88deg,rgba(60,30,10,.4) 0 3px,transparent 3px 43px),
+    repeating-linear-gradient(92deg,rgba(0,0,0,.2) 0 1px,rgba(255,200,140,.05) 1px 29px),
+    #2a1a10;
+  background-attachment:fixed
+}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:50;
+  background:radial-gradient(ellipse at 50% 40%,transparent 35%,rgba(0,0,0,.55) 72%,rgba(0,0,0,.93) 100%)}
+body::after{content:"";position:fixed;inset:-50%;pointer-events:none;z-index:51;opacity:.17;mix-blend-mode:overlay;
+  background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  animation:grain 1s steps(4) infinite}
+@keyframes grain{25%{transform:translate(-3%,2%)}50%{transform:translate(2%,-3%)}75%{transform:translate(-2%,-2%)}}
+
+/* ---------- Cabeçalho: placa de latão, medidor, etiquetas ---------- */
+header{position:relative;z-index:2;display:flex;flex-wrap:wrap;align-items:center;gap:14px 18px;max-width:1040px;margin:auto;padding:18px 20px 6px;color:var(--paper)}
+h1{font:1.45rem/1 "Alfa Slab One",serif;margin:0;padding:10px 18px;color:#2b1d0b;letter-spacing:.03em;
+  background:linear-gradient(180deg,#e7c56b,#b8862b 55%,#e1bd5f);border:2px solid #6e4d12;border-radius:3px;
+  box-shadow:inset 0 0 0 3px rgba(255,240,190,.5),var(--drop);text-shadow:0 1px 0 rgba(255,255,255,.4);transform:rotate(-1.6deg)}
+.hpbox{display:flex;align-items:center;gap:8px;flex:1 1 250px;transform:rotate(.7deg)}
+.lbl{font:700 1.5rem var(--hand);white-space:nowrap;color:#ff9a8a;text-shadow:0 2px 3px #000}
+.hp{position:relative;flex:1;height:30px;background:#1d140d;border:3px solid var(--paper);border-radius:6px;overflow:hidden;
+  box-shadow:inset 0 0 8px #000,4px 6px 12px rgba(0,0,0,.6);
+  background-image:repeating-linear-gradient(90deg,transparent 0 9px,rgba(244,235,217,.18) 9px 10px)}
+.hpf{height:100%;width:100%;background:var(--green);transition:width .5s,background .5s;box-shadow:inset 0 -6px 0 rgba(0,0,0,.25)}
 .hpf.mid{background:var(--amber)}.hpf.low{background:var(--red)}
-.hpt{position:absolute;inset:0;display:grid;place-items:center;font-size:.9rem;color:#fff;text-shadow:0 1px 2px #000}
-.tag{background:var(--paper);color:var(--ink);padding:4px 12px;border-radius:3px;transform:rotate(-1.5deg);box-shadow:2px 2px 0 rgba(0,0,0,.5)}
+.hpt{position:absolute;inset:0;display:grid;place-items:center;font:700 1.4rem var(--hand);color:#fff;text-shadow:0 1px 3px #000}
+.tag{position:relative;padding:4px 14px 4px 26px;background:var(--paper);color:var(--ink);border-radius:2px;box-shadow:4px 6px 10px rgba(0,0,0,.55)}
+.tag::before{content:"";position:absolute;left:8px;top:50%;width:9px;height:9px;margin-top:-5px;border-radius:50%;background:#2a1a10;box-shadow:inset 0 1px 2px #000}
+#tm-box{transform:rotate(1.8deg)}#sc{transform:rotate(-1.2deg)}
 
-/* Botões em estilo carimbo */
-.btn{background:var(--paper2);border:2px solid var(--ink);border-radius:4px;padding:10px 16px;box-shadow:3px 3px 0 var(--ink);transition:transform .1s,box-shadow .1s,background .2s}
+/* ---------- Botões: etiquetas de papel e carimbos de tinta ---------- */
+.btn{background:var(--paper2);border:2px solid var(--ink);border-radius:3px;padding:10px 16px;box-shadow:3px 4px 0 rgba(43,38,33,.85);transition:transform .1s,box-shadow .1s,background .2s}
 .btn:hover:not(:disabled){background:var(--manila)}
-.btn:active:not(:disabled){transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
+.btn:active:not(:disabled){transform:translate(3px,4px);box-shadow:0 0 0 transparent}
 .btn:disabled{opacity:.5;cursor:not-allowed}
-.btn.sm{padding:4px 10px;font-size:.85rem;color:var(--ink)}
-.btn.stamp{color:var(--red);border-color:var(--red);box-shadow:3px 3px 0 var(--red);font-weight:bold;transform:rotate(-1.5deg)}
-.btn.stamp:active:not(:disabled){transform:translate(3px,3px) rotate(-1.5deg)}
+.btn.sm{padding:5px 12px;font-size:.85rem;background:var(--manila);color:var(--ink);transform:rotate(-1deg)}
+.btn.sm:nth-of-type(2){transform:rotate(1.2deg)}
+.btn.stamp,.carimbo,.dif{filter:url(#stampf)}
+.btn.stamp{background:transparent;color:var(--red);border:3px solid var(--red);border-radius:6px;box-shadow:none;
+  outline:2px solid var(--red);outline-offset:-9px;font-weight:bold;text-transform:uppercase;letter-spacing:.06em;
+  mix-blend-mode:multiply;transform:rotate(-2deg)}
+.btn.stamp:hover:not(:disabled){background:rgba(155,59,46,.1)}
+.btn.stamp:active:not(:disabled){transform:rotate(-2deg) scale(.96);box-shadow:none}
+.btn.stamp:focus-visible{outline:3px solid var(--amber);outline-offset:3px}
+.carimbo{display:inline-block;border:4px solid var(--red);color:var(--red);font:1.6rem "Alfa Slab One",serif;padding:4px 16px;
+  transform:rotate(-6deg);margin:10px 0 18px;mix-blend-mode:multiply;text-transform:uppercase}
+.carimbo.v{border-color:var(--green);color:var(--green)}
+#fb .carimbo{font-size:1.15rem;margin:0 8px 0 0;padding:2px 12px}
+.dif{display:inline-block;margin-left:8px;padding:0 10px;border:2px solid;border-radius:4px;font-size:.8rem;font-weight:bold;
+  text-transform:uppercase;letter-spacing:.05em;transform:rotate(-3deg);mix-blend-mode:multiply;background:transparent}
+.d-f{color:var(--green)}.d-m{color:#a56b0c}.d-d,.d-b{color:var(--red)}
+.d-b{outline:2px solid var(--red);outline-offset:2px}
 
-/* Pasta de arquivo */
-main{display:grid;gap:18px;max-width:1000px;margin:34px auto 24px;padding:0 16px}
-@media(min-width:820px){main{grid-template-columns:2fr 1fr;align-items:start}}
-.folder{position:relative;background:var(--manila);border-radius:2px 14px 12px 12px;padding:20px 14px 14px;
-  box-shadow:0 12px 26px rgba(0,0,0,.55),inset 0 0 40px rgba(107,74,47,.35)}
-.folder::before{content:attr(data-label);position:absolute;top:-28px;left:0;background:var(--manila);padding:3px 18px 2px;
-  border-radius:10px 10px 0 0;font-size:.9rem}
-.sheet{background:var(--paper);border:1px solid #cdbd9c;padding:20px;box-shadow:inset 0 0 44px rgba(120,80,30,.18),0 2px 4px rgba(0,0,0,.3)}
+/* ---------- Pasta do caso (manila, torta, com sombra pesada) ---------- */
+main{position:relative;z-index:1;display:grid;gap:0 8px;max-width:1040px;margin:36px auto 34px;padding:0 20px}
+@media(min-width:820px){main{grid-template-columns:2.1fr 1fr;align-items:start}.inv{margin-left:-26px}}
+.folder{--r:-1.2deg;position:relative;transform:rotate(var(--r));background:linear-gradient(160deg,#dcb978,#c79d58);
+  border-radius:2px 14px 12px 12px;padding:20px 14px 14px;box-shadow:var(--drop),inset 0 0 50px rgba(107,74,47,.45)}
+.folder::before{content:attr(data-label);position:absolute;top:-29px;left:0;background:#d3ad6b;padding:3px 18px 2px;border-radius:10px 10px 0 0;font-size:.9rem;box-shadow:-2px -3px 5px rgba(0,0,0,.3)}
+.folder::after{content:"";position:absolute;right:22px;bottom:14px;width:92px;height:92px;border-radius:50%;pointer-events:none;
+  border:7px solid rgba(80,40,15,.16);box-shadow:inset 0 0 6px rgba(80,40,15,.18);filter:blur(.6px)}
+.sheet{position:relative;background:var(--paper);border:1px solid #cdbd9c;padding:20px;transform:rotate(.5deg);
+  box-shadow:inset 0 0 44px rgba(120,80,30,.2),2px 4px 6px rgba(0,0,0,.35)}
 .prog{height:10px;border:2px solid var(--ink);margin-bottom:16px;background:var(--paper2)}
 #pf{height:100%;width:0;background:var(--leather);transition:width .6s}
 .fase{color:var(--mut)}
 h2{font:1.5rem/1.2 "Alfa Slab One",serif;margin:.2em 0 .5em;color:var(--leather)}
-h3{font:1.05rem "Alfa Slab One",serif;margin:0 0 12px;color:var(--paper)}
 .story{border-left:4px solid var(--red);padding:2px 0 2px 12px;margin:12px 0;color:var(--mut)}
 .q{font-size:1.1rem;margin:16px 0}
-.opts{display:grid;gap:10px}
+.opts{display:grid;gap:12px}
 .opt{text-align:left}
-.opt[aria-pressed=true]{background:var(--manila);box-shadow:3px 3px 0 var(--amber);border-color:var(--amber)}
-.row{display:flex;flex-wrap:wrap;gap:12px;margin-top:14px}
-input{flex:1;min-width:160px;background:#fffaf0;border:2px solid var(--ink);border-radius:2px;padding:10px 12px;font:inherit;color:var(--ink)}
-.hint{margin-top:10px;padding:8px 12px;background:#f2dfa8;border:1px dashed var(--amber);transform:rotate(-.4deg)}
-#fb{margin-top:14px;min-height:1.6em}
-.good{color:var(--green);font-weight:bold}.bad{color:var(--red);font-weight:bold}
+.opt:nth-child(odd){transform:rotate(-.5deg)}.opt:nth-child(even){transform:rotate(.45deg)}
+.opt[aria-pressed=true]{background:var(--manila);box-shadow:3px 4px 0 var(--amber);border-color:var(--amber)}
+.seedc{padding:14px 16px;text-align:left;border-radius:2px 2px 2px 14px}
+.seedc:nth-child(odd){transform:rotate(-.9deg)}.seedc:nth-child(even){transform:rotate(.8deg)}
+.seedc small{color:var(--mut)}
+.row{display:flex;flex-wrap:wrap;gap:14px;margin-top:16px;align-items:center}
+input{flex:1;min-width:160px;background:transparent;border:0;border-bottom:3px dashed var(--ink);padding:8px 4px;font:inherit;font-size:1.15rem;color:var(--ink)}
 
-/* Matemática */
+/* ---------- Anotações à mão: dicas, feedback ---------- */
+.hint{position:relative;margin-top:16px;padding:10px 16px;font:500 1.4rem/1.15 var(--hand);color:var(--blue);background:#f6e27a;
+  box-shadow:3px 5px 9px rgba(0,0,0,.4);transform:rotate(-.9deg)}
+.hint+.hint{transform:rotate(1deg)}
+.hint::before{content:"";position:absolute;top:-9px;left:50%;width:70px;height:18px;margin-left:-35px;background:rgba(240,230,170,.75);transform:rotate(-3deg)}
+#fb{min-height:1.8em;margin-top:14px;font:700 1.5rem/1.15 var(--hand)}
+.good{color:var(--blue)}
+.bad{color:var(--red);text-decoration:underline wavy rgba(155,59,46,.6);text-underline-offset:4px}
+
+/* ---------- Chefão ---------- */
+.cs{position:relative}
+.cs.boss{padding:16px;border:3px double var(--red);background:repeating-linear-gradient(135deg,rgba(155,59,46,.08) 0 10px,transparent 10px 20px);box-shadow:inset 0 0 30px rgba(155,59,46,.2)}
+.cs.boss h2{color:var(--red)}
+.carimbo.suspeito{position:absolute;top:-10px;right:-6px;font-size:1rem;padding:2px 10px;margin:0;transform:rotate(7deg)}
+
+/* ---------- Matemática ---------- */
 .m{font-size:1.1em;white-space:nowrap}
 .m sup,.m sub{font-size:.7em}
 .mx{display:inline-flex;flex-direction:column;border-left:2px solid var(--ink);border-right:2px solid var(--ink);border-radius:5px;padding:2px 8px;vertical-align:middle;margin:0 4px}
 .r{display:flex;gap:14px;justify-content:center}
 .r i{font-style:normal;min-width:1.3em;text-align:center}
 
-/* Inventário */
-.inv{background:var(--leather);padding:16px;border-radius:6px;box-shadow:0 8px 20px rgba(0,0,0,.5)}
-ul{list-style:none;margin:0;padding:0;display:grid;gap:12px}
-li.cl{background:var(--paper2);padding:10px 12px;font-size:.88rem;box-shadow:2px 2px 4px rgba(0,0,0,.4)}
-li.cl:nth-child(odd){transform:rotate(-1deg)}li.cl:nth-child(even){transform:rotate(.8deg)}
+/* ---------- Bloco de anotações (inventário) ---------- */
+.inv{position:relative;z-index:3;margin-top:-10px;padding:34px 16px 20px 48px;transform:rotate(1.3deg);border-top:14px solid #7d2f25;
+  background:linear-gradient(90deg,transparent 36px,rgba(155,59,46,.5) 36px 38px,transparent 38px),
+  repeating-linear-gradient(transparent 0 25px,rgba(70,110,150,.3) 25px 26px),#f1e2a6;
+  box-shadow:var(--drop),inset 0 0 40px rgba(150,100,20,.25)}
+.inv h3{font:700 1.7rem/1 var(--hand);margin:0 0 14px;color:var(--red)}
+ul{list-style:none;margin:0;padding:0;display:grid;gap:14px}
+li.cl{position:relative;padding:8px 12px;font-size:.88rem;background:var(--paper);box-shadow:3px 5px 8px rgba(0,0,0,.4)}
+li.cl:nth-child(3n+1){transform:rotate(-1.4deg)}li.cl:nth-child(3n+2){transform:rotate(.9deg)}li.cl:nth-child(3n){transform:rotate(-.4deg)}
 li.cl b{display:block;color:var(--red)}
-li.lk{background:transparent;border:2px dashed var(--paper2);color:var(--paper2);box-shadow:none}
+li.lk{background:transparent;border:2px dashed rgba(43,38,33,.4);color:var(--mut);box-shadow:none}
 
-/* Telas finais e modal */
+/* ---------- Telas finais e modais ---------- */
 .fim{text-align:center}
-.carimbo{display:inline-block;border:4px solid var(--red);color:var(--red);font:1.6rem "Alfa Slab One",serif;padding:4px 16px;transform:rotate(-6deg);margin:10px 0 18px;opacity:.9}
-.carimbo.v{border-color:var(--green);color:var(--green)}
-.ov{position:fixed;inset:0;background:rgba(20,12,6,.8);display:none;align-items:center;justify-content:center;padding:20px;z-index:9}
+.ov{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;padding:24px;
+  background:radial-gradient(circle at 50% 40%,rgba(60,35,15,.6),rgba(0,0,0,.9))}
 .ov.on{display:flex}
-.pop{max-width:460px;text-align:center}
+.pop{max-width:460px;text-align:center;transform:rotate(-1deg)}
 
-/* Animações de dano e acerto */
+/* ---------- Flashcard do dossiê: bloco amarelado com clipe e fita ---------- */
+.notebook{position:relative;width:min(520px,100%);padding:26px 22px 22px 56px;color:var(--ink);line-height:28px;transform:rotate(-1deg);
+  background:linear-gradient(90deg,transparent 40px,rgba(155,59,46,.55) 40px 42px,transparent 42px),
+  repeating-linear-gradient(transparent 0 27px,rgba(70,110,150,.35) 27px 28px),radial-gradient(ellipse at 50% 50%,#f6e8a8,#e6cd75);
+  border:1px solid #bfa860;box-shadow:var(--drop),inset 0 0 55px rgba(150,100,20,.4)}
+.notebook::before{content:"";position:absolute;top:-14px;right:36px;width:100px;height:30px;background:rgba(238,222,150,.72);box-shadow:0 1px 3px rgba(0,0,0,.3);transform:rotate(4deg)}
+.notebook::after{content:"📎";position:absolute;top:-28px;left:34px;font-size:2.6rem;line-height:1;transform:rotate(-18deg);filter:drop-shadow(2px 3px 2px rgba(0,0,0,.5))}
+#fcb{max-height:58vh;overflow:auto;padding-right:6px}
+#fcb h3{font:700 1.8rem/1.2 var(--hand);color:var(--red);margin:0 0 6px}
+#fcb p{margin:0 0 14px}
+#fcb p:nth-of-type(2){font:500 1.45rem/1.15 var(--hand);color:var(--blue)}
+.notebook .btn{margin-top:10px}
+
+/* ---------- Dano e acerto ---------- */
 .hit{animation:hit .5s}
-@keyframes hit{15%,55%{transform:translateX(-9px);box-shadow:0 0 0 6px rgba(155,59,46,.7)}35%,75%{transform:translateX(9px)}}
-.ok{animation:ok .6s}
-@keyframes ok{from{box-shadow:0 0 0 0 rgba(93,122,74,.9)}to{box-shadow:0 0 0 24px rgba(93,122,74,0)}}
-@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@keyframes hit{15%,55%{transform:translateX(-9px) rotate(var(--r,0deg));box-shadow:var(--drop),0 0 0 6px rgba(155,59,46,.7)}35%,75%{transform:translateX(9px) rotate(var(--r,0deg))}}
+.ok{animation:okp .6s}
+@keyframes okp{from{box-shadow:var(--drop),0 0 0 0 rgba(93,122,74,.9)}to{box-shadow:var(--drop),0 0 0 24px rgba(93,122,74,0)}}
+@media(max-width:600px){.folder{--r:-.6deg}.inv{transform:rotate(.7deg)}h1{font-size:1.2rem}}
+@media(prefers-reduced-motion:reduce){*,body::after{animation:none!important;transition:none!important}}

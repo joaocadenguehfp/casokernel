@@ -5,10 +5,19 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Caso Kernel · Arquivo de Álgebra Linear</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Special+Elite&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Caveat:wght@500;700&family=Special+Elite&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <filter id="stampf"><!-- tinta falhada de carimbo -->
+    <feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" result="t"/>
+    <feColorMatrix in="t" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -3 2.1" result="m"/>
+    <feComposite in="SourceGraphic" in2="m" operator="in" result="e"/>
+    <feTurbulence type="fractalNoise" baseFrequency=".03" numOctaves="2" seed="5" result="w"/>
+    <feDisplacementMap in="e" in2="w" scale="2.5"/>
+  </filter>
+</svg>
 <header>
   <h1>🕵️‍♂️ Caso Kernel</h1>
   <div class="hpbox">
@@ -17,6 +26,7 @@
       <div class="hpf" id="hpf"></div><span class="hpt" id="hpt">100/100</span>
     </div>
   </div>
+  <span class="tag" id="tm-box" title="Tempo de investigação">⏱ <span id="tm" role="timer" aria-label="Tempo decorrido">00:00</span></span>
   <span class="tag" id="sc" aria-live="polite">🏅 0 pts</span>
   <button class="btn sm" id="snd" aria-label="Ativar ou desativar o áudio">🔊 Áudio</button>
   <button class="btn sm" id="rs" aria-label="Reiniciar a investigação">↺ Reiniciar</button>
@@ -40,6 +50,13 @@
     <h2 id="ovt">🏆 Caso encerrado</h2>
     <p id="ovp"></p>
     <button class="btn stamp" id="ovb">✅ Arquivar caso</button>
+  </div>
+</div>
+
+<div class="ov" id="fc" role="dialog" aria-modal="true" aria-label="Dossiê de aprendizado">
+  <div class="notebook">
+    <div id="fcb"></div>
+    <button class="btn stamp" id="fcn">📂 Próxima fase</button>
   </div>
 </div>
 
