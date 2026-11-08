@@ -290,3 +290,83 @@ lsq:{nome:"Reta de mínimos quadrados",
 };
 TOOLS2D.det=Object.assign({},TOOLS2D.solve,{nome:"Paralelogramo do determinante"});
 TOOLS2D.orto=Object.assign({},TOOLS2D.solve,{nome:"Régua ortogonal"});
+
+/* =====================================================================
+   LUPA DE ESCALONAMENTO (Etapa 5): operações elementares com frações exatas.
+   tp:{M:[[...],...]} (inteiros). Fração = [numerador, denominador>0], sempre reduzida.
+   ===================================================================== */
+const FR={
+  g(a,b){a=Math.abs(a);b=Math.abs(b);while(b)[a,b]=[b,a%b];return a||1},
+  mk(n,d){if(d===undefined)d=1;if(d<0){n=-n;d=-d}const g=FR.g(n,d);return [n/g,d/g]},
+  add:(a,b)=>FR.mk(a[0]*b[1]+b[0]*a[1],a[1]*b[1]),
+  mul:(a,b)=>FR.mk(a[0]*b[0],a[1]*b[1]),
+  neg:a=>[-a[0],a[1]],inv:a=>FR.mk(a[1],a[0]),
+  zero:a=>a[0]===0,
+  /* "−3", "1/2", "-0,5", "2.25" -> fração; null se inválido */
+  parse(t){t=String(t).replace(/[−–]/g,"-").replace(",",".").replace(/\s/g,"");
+    let m=t.match(/^([-+]?\d+)\/([-+]?\d+)$/);if(m)return +m[2]===0?null:FR.mk(+m[1],+m[2]);
+    m=t.match(/^([-+]?)(\d+)(?:\.(\d+))?$/);if(!m)return null;const dd=(m[3]||"").length,p=10**dd;
+    return FR.mk((m[1]==="-"?-1:1)*(+m[2]*p+(dd?+m[3]:0)),p)},
+  txt:a=>(a[0]<0?"−":"")+Math.abs(a[0])+(a[1]===1?"":"/"+a[1])
+};
+const RR={
+  from:M=>M.map(r=>r.map(v=>FR.mk(v))),
+  apply(M,o){const R=M.map(r=>r.slice());
+    if(o.op==="swap")[R[o.i],R[o.j]]=[R[o.j],R[o.i]];
+    else if(o.op==="scale")R[o.i]=R[o.i].map(x=>FR.mul(x,o.k));
+    else R[o.i]=R[o.i].map((x,c)=>FR.add(x,FR.mul(o.k,R[o.j][c])));
+    return R},
+  lead:r=>r.findIndex(x=>!FR.zero(x)),
+  echelon(M){let last=-1,zero=false;for(const r of M){const l=RR.lead(r);if(l<0){zero=true;continue}if(zero||l<=last)return false;last=l}return true},
+  rank:M=>M.filter(r=>RR.lead(r)>=0).length,
+  /* plano de eliminação de Gauss até a forma escalonada (usado por "Sugerir passo" e pelo validador) */
+  plan(M0){let M=M0.map(r=>r.slice());const ops=[],m=M.length,n=M[0].length;let row=0;
+    for(let c=0;c<n&&row<m;c++){
+      let p=-1;for(let i=row;i<m;i++)if(!FR.zero(M[i][c])){p=i;break}
+      if(p<0)continue;
+      if(p!==row){const o={op:"swap",i:row,j:p};ops.push(o);M=RR.apply(M,o)}
+      for(let i=row+1;i<m;i++)if(!FR.zero(M[i][c])){const o={op:"add",i,j:row,k:FR.neg(FR.mul(M[i][c],FR.inv(M[row][c])))};ops.push(o);M=RR.apply(M,o)}
+      row++;
+    }
+    return {ops,M}},
+  desc(o){const L=k=>"L"+(k+1);return o.op==="swap"?L(o.i)+" ↔ "+L(o.j):o.op==="scale"?L(o.i)+" ← "+FR.txt(o.k)+"·"+L(o.i):L(o.i)+" ← "+L(o.i)+" + ("+FR.txt(o.k)+")·"+L(o.j)}
+};
+TOOLS2D.rref={nome:"Lupa de escalonamento",
+  ans(tp){const r=RR.plan(RR.from(tp.M));return RR.echelon(r.M)?[RR.rank(r.M)]:[NaN]},
+  solve(tp,st){const r=RR.plan(RR.from(tp.M));st.M=r.M;st.hist=r.ops.map(RR.desc)},
+  ui(el,tp,st,use){
+    st.M=st.M||RR.from(tp.M);st.undo=st.undo||[];st.hist=st.hist||[];
+    const m=tp.M.length,opt=n=>Array.from({length:n},(_,k)=>'<option value="'+k+'">L'+(k+1)+"</option>").join("");
+    el.innerHTML='<p class="tint">Escalone com operações elementares: elas <b>não mudam o espaço-linha</b>. Na forma escalonada, cada linha não nula começa mais à direita que a anterior, e o número dessas linhas é o posto.</p>'+
+      '<div class="rrw"><table class="rr" aria-label="Matriz em escalonamento"></table></div>'+
+      '<div class="rrc"><label>Operação <select id="rop"><option value="add">Lᵢ ← Lᵢ + k·Lⱼ</option><option value="swap">Lᵢ ↔ Lⱼ</option><option value="scale">Lᵢ ← k·Lᵢ</option></select></label>'+
+      '<label>i <select id="ri">'+opt(m)+'</select></label><label id="rjl">j <select id="rj">'+opt(m)+'</select></label><label id="rkl">k <input id="rk" value="-1" inputmode="decimal" autocomplete="off" aria-label="Escalar k (aceita frações como 1/2)"></label></div>'+
+      '<div class="row trow2"><button type="button" class="btn sm" id="rap">Aplicar</button><button type="button" class="btn sm" id="rud">Desfazer</button><button type="button" class="btn sm cyan" id="rsg">Sugerir passo</button></div>'+
+      '<p class="tread" id="tread" aria-live="polite"></p><ol class="rrh" aria-label="Histórico de operações"></ol>'+
+      '<div class="row trow2"><button type="button" class="btn stamp" id="tuse" disabled>Usar resultado</button></div>';
+    const q=s=>el.querySelector(s),read=q(".tread"),useB=q("#tuse");
+    q("#rj").value=m>1?1:0;
+    const sync=()=>{const o=q("#rop").value;q("#rjl").hidden=o==="scale";q("#rkl").hidden=o==="swap"};
+    const draw=(note)=>{
+      const ech=RR.echelon(st.M),rk=RR.rank(st.M);
+      q(".rr").innerHTML=st.M.map((r,i)=>{const l=RR.lead(r);return '<tr class="'+(l<0?"z":"")+(ech&&l>=0?" pv":"")+'"><th>L'+(i+1)+"</th>"+r.map((x,c)=>'<td class="'+(c===l?"ld":"")+'">'+FR.txt(x)+"</td>").join("")+"</tr>"}).join("");
+      q(".rrh").innerHTML=st.hist.map(h=>"<li>"+h+"</li>").join("");
+      q("#rud").disabled=!st.undo.length;
+      read.innerHTML=(note?note+"<br>":"")+(ech?'<b class="tok">Forma escalonada: '+rk+" linha"+(rk===1?"":"s")+" não nula"+(rk===1?"":"s")+" ⇒ posto = dimensão do espaço-linha = "+rk+".</b>":"Ainda não está escalonada: zere os elementos abaixo de cada pivô.");
+      useB.disabled=!ech;
+    };
+    const getOp=()=>{const o={op:q("#rop").value,i:+q("#ri").value,j:+q("#rj").value};
+      if(o.op!=="scale"&&o.i===o.j)return "Escolha linhas diferentes.";
+      if(o.op!=="swap"){o.k=FR.parse(q("#rk").value);if(!o.k)return "k inválido: use inteiros, decimais ou frações (ex.: −1/2).";if(o.op==="scale"&&FR.zero(o.k))return "Multiplicar uma linha por 0 não é operação elementar.";}
+      return o};
+    q("#rop").onchange=sync;
+    q("#rap").onclick=()=>{const o=getOp();if(typeof o==="string"){draw('<span class="tbad">'+o+"</span>");return}
+      st.undo.push(st.M);st.M=RR.apply(st.M,o);st.hist.push(RR.desc(o));draw()};
+    q("#rud").onclick=()=>{if(!st.undo.length)return;st.M=st.undo.pop();st.hist.pop();draw()};
+    q("#rsg").onclick=()=>{const p=RR.plan(st.M).ops[0];
+      if(!p){draw("Nenhum passo necessário: a matriz já está escalonada.");return}
+      q("#rop").value=p.op;q("#ri").value=p.i;q("#rj").value=p.j;if(p.k)q("#rk").value=FR.txt(p.k).replace("−","-");sync();
+      draw("Sugestão: "+RR.desc(p)+". Confira os campos e clique em Aplicar.")};
+    useB.onclick=()=>use([RR.rank(st.M)]);
+    sync();draw();
+  }};

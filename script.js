@@ -601,7 +601,7 @@ document.addEventListener("keydown",e=>{
   }
   if(e.ctrlKey||e.metaKey||e.altKey||S.seed===null||S.ta||S.over||S.fin)return;
   if(m&&m.id!=="pz")return;
-  const t=e.target.tagName;if(t==="INPUT"||t==="TEXTAREA")return;
+  const t=e.target.tagName;if(t==="INPUT"||t==="TEXTAREA"||t==="SELECT")return;
   if(!m&&scn()&&e.key.toLowerCase()==="h"){flashAll();return}   /* destacar objetos */
   if(S.open===null||S.sv)return;
   const P=cur();if(P.type!=="choice")return;

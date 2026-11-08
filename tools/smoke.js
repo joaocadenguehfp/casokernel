@@ -115,7 +115,7 @@ const fmtAns=(a,dec)=>[].concat(a).map(v=>{
         hinted=true;
       }
       if(P.tool&&scene){ /* ferramenta geométrica: interação real (teclado ou controle deslizante) e "Usar resultado" */
-        await page.click("#tlb");await page.waitForSelector("#tool svg");
+        await page.click("#tlb");await page.waitForSelector("#tool #tuse");
         const info=await page.evaluate(()=>{const P=cur(),tp=P.tp(P);return {k:P.tool,tgt:TOOLS2D[P.tool].ans(tp),st:JSON.parse(JSON.stringify(toolSt[qk])),tp}});
         if(["det","orto","basis"].includes(info.k)){
           const c0=info.k==="basis"?info.st.c:info.st.x,dx=info.tgt[0]-c0[0],dy=info.tgt[1]-c0[1];
@@ -125,9 +125,13 @@ const fmtAns=(a,dec)=>[].concat(a).map(v=>{
         }else if(info.k==="eigen"||info.k==="conic"){
           const g=await page.evaluate(()=>{const P=cur(),st={};TOOLS2D[P.tool].solve(P.tp(P),st);return st.g});
           await page.locator("#tang").fill(String(g));
+        }else if(info.k==="rref"){ /* escalona pela interface: "Sugerir passo" + "Aplicar" até a forma escalonada */
+          for(let j=0;j<30&&await page.locator("#tuse[disabled]").count();j++){await page.click("#rsg");await page.click("#rap")}
+          if(await page.evaluate(()=>toolSt[qk].hist.length)<1)fail(sd.id+": lupa sem operações aplicadas");
+          await page.click("#rud");await page.click("#rsg");await page.click("#rap");   /* desfazer e refazer */
         }else await page.evaluate(()=>toolAuto());
         await page.waitForSelector("#tuse:not([disabled])",{timeout:3000}).catch(()=>fail(sd.id+": ferramenta "+info.k+" não chegou ao alvo na fase "+P.i));
-        if(solved===0||info.k==="lsq")await shot(sd.id+"-ferramenta-"+info.k);
+        if(solved===0||info.k==="lsq"||info.k==="rref")await shot(sd.id+"-ferramenta-"+info.k);
         await page.click("#tuse");
         if(P.type==="choice"){if(await page.evaluate(()=>S.sel)!==P.a)fail(sd.id+": ferramenta "+info.k+" escolheu a alternativa errada")}
         else{const v=await page.evaluate(()=>{const a=cur().a;return parse($("ans").value,[].concat(a).length).v});
