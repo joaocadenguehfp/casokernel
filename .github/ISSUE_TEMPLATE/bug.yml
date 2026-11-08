@@ -1,0 +1,26 @@
+name: Erro no jogo
+description: Algo não funciona (tela, botão, ferramenta, save, celular).
+title: "[Erro] "
+labels: ["erro"]
+body:
+  - type: textarea
+    id: oque
+    attributes:
+      label: O que aconteceu
+      description: E o que você esperava que acontecesse.
+    validations:
+      required: true
+  - type: textarea
+    id: passos
+    attributes:
+      label: Como reproduzir
+      placeholder: "1. Abri o caso ...\n2. Cliquei em ...\n3. ..."
+    validations:
+      required: true
+  - type: input
+    id: ambiente
+    attributes:
+      label: Navegador e aparelho
+      placeholder: "Chrome 130 no Android / Safari no iPhone / Firefox no Windows"
+    validations:
+      required: true

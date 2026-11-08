@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Jogar o Caso Kernel
+    url: https://case-kernel.vercel.app/
+    about: Versão publicada do jogo.

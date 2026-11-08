@@ -1,0 +1,24 @@
+name: Sugestão de problema ou caso
+description: Proponha um problema novo, um tema ou um caso inteiro.
+title: "[Sugestão] "
+labels: ["sugestão"]
+body:
+  - type: input
+    id: conteudo
+    attributes:
+      label: Conteúdo
+      description: "O tema de Álgebra Linear (ex.: diagonalização, Gram-Schmidt)."
+    validations:
+      required: true
+  - type: textarea
+    id: problema
+    attributes:
+      label: Problema
+      description: Enunciado, resposta e, se possível, duas dicas (da mais leve para a mais forte) e a explicação.
+    validations:
+      required: true
+  - type: textarea
+    id: cena
+    attributes:
+      label: Ideia de cena (opcional)
+      description: Que objeto da investigação poderia esconder esse problema?

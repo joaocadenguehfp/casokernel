@@ -10,5 +10,10 @@
   },
   "devDependencies": {
     "playwright": "1.63.0"
+  },
+  "homepage": "https://case-kernel.vercel.app/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/joaocadenguehfp/casokernel.git"
   }
 }

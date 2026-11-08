@@ -1,0 +1,38 @@
+name: Resposta errada ou explicação confusa
+description: Um problema aceita a resposta errada, recusa a certa ou explica algo de um jeito confuso.
+title: "[Conteúdo] "
+labels: ["conteúdo"]
+body:
+  - type: dropdown
+    id: caso
+    attributes:
+      label: Caso
+      options:
+        - O Cofre Vazio
+        - A Matriz Fantasma
+        - A Dependência Letal
+        - O Observatório Quadrático
+        - Time Attack
+    validations:
+      required: true
+  - type: input
+    id: pista
+    attributes:
+      label: Pista
+      description: "O título da pista ou o objeto da cena (ex.: \"Ponto cego\", \"Luneta\")."
+    validations:
+      required: true
+  - type: textarea
+    id: enunciado
+    attributes:
+      label: Enunciado que apareceu
+      description: Copie o enunciado. Alguns problemas mudam de números a cada partida, então os números exatos importam.
+    validations:
+      required: true
+  - type: textarea
+    id: problema
+    attributes:
+      label: O que está errado
+      description: Qual resposta você deu, o que o jogo disse e qual você acredita ser a certa (com a conta, se puder).
+    validations:
+      required: true
