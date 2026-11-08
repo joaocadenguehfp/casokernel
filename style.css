@@ -6,6 +6,11 @@
    dos cantos é desenhada à parte). Brilhos de painéis grandes ficam nos
    wrappers (.folder::after / .invw::after); brilhos internos usam inset.
    ===================================================================== */
+/* Fontes locais (fonts/, licença OFL). Cinzel é variável: um arquivo cobre 500–700. */
+@font-face{font-family:"Cinzel";font-style:normal;font-weight:500 700;font-display:swap;src:url(fonts/cinzel-latin.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Rajdhani";font-style:normal;font-weight:500;font-display:swap;src:url(fonts/rajdhani-500-latin.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Rajdhani";font-style:normal;font-weight:600;font-display:swap;src:url(fonts/rajdhani-600-latin.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Rajdhani";font-style:normal;font-weight:700;font-display:swap;src:url(fonts/rajdhani-700-latin.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
 :root{
   --bg0:#0b1017;--bg1:#131b24;--bg2:#1a2531;
   --glass:rgba(19,27,36,.86);
@@ -74,7 +79,7 @@ h1 .ic{margin-right:.55em;width:1.3em;height:1.3em}
 .hpf{height:100%;width:100%;background:linear-gradient(90deg,#1565c0,var(--cyan) 70%,var(--cyan2));transition:width .5s,background .5s;box-shadow:inset 0 2px 0 rgba(255,255,255,.28)}
 .hpf.mid{background:linear-gradient(90deg,#a84a00,var(--copper) 70%,#ffb35c)}
 .hpf.low{background:linear-gradient(90deg,#7a1a14,var(--red));animation:lowp 1s ease-in-out infinite alternate}
-@keyframes lowp{to{filter:brightness(1.55)}}
+@keyframes lowp{to{opacity:.6}}
 .hp::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(90deg,transparent 0 calc(10% - 2px),var(--bg0) calc(10% - 2px) 10%)}
 .hpt{position:absolute;inset:0;z-index:2;display:grid;place-items:center;font:700 .8rem var(--ui);letter-spacing:.14em;color:#fff;text-shadow:0 1px 3px #000,0 0 6px #000}
 .tag{--cut:8px;--fill:rgba(19,27,36,.92);display:inline-flex;align-items:center;padding:5px 16px;font-weight:700;letter-spacing:.06em;color:var(--gold2);font-variant-numeric:tabular-nums}
@@ -122,8 +127,8 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1fr
   font:700 .72rem var(--disp);letter-spacing:.2em;text-transform:uppercase;color:var(--gold2);
   background:linear-gradient(180deg,var(--bg2),var(--bg1));border:1px solid var(--gold3);border-bottom:0;
   clip-path:polygon(8px 0,calc(100% - 8px) 0,100% 8px,100% 100%,0 100%,0 8px)}
-.sheet{--cut:22px;--fill:linear-gradient(180deg,rgba(26,37,49,.88),rgba(13,19,27,.9));padding:28px 24px 24px;
-  -webkit-backdrop-filter:blur(10px) saturate(1.15);backdrop-filter:blur(10px) saturate(1.15)}
+/* painéis sem backdrop-filter: o fundo atrás é quase uniforme e o blur repintava a cada rolagem */
+.sheet{--cut:22px;--fill:linear-gradient(180deg,rgba(26,37,49,.94),rgba(13,19,27,.95));padding:28px 24px 24px}
 .prog{position:relative;height:12px;margin-bottom:20px;background:#070b10;border:1px solid var(--gold3);overflow:hidden}
 #pf{height:100%;width:0;background:linear-gradient(90deg,var(--cyan),var(--gold2));transition:width .6s;box-shadow:0 0 10px rgba(79,195,247,.6)}
 .prog::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(90deg,transparent 0 calc(10% - 3px),#0c121a calc(10% - 3px) 10%)}
@@ -185,8 +190,7 @@ input:disabled{opacity:.7}
 .r i{font-style:normal;min-width:1.4em;text-align:center}
 
 /* ---------- Inventário (Grimório de Relíquias) ---------- */
-.inv{--cut:20px;--fill:linear-gradient(180deg,rgba(24,34,46,.9),rgba(12,18,26,.92));padding:24px 18px 20px;
-  -webkit-backdrop-filter:blur(10px) saturate(1.15);backdrop-filter:blur(10px) saturate(1.15)}
+.inv{--cut:20px;--fill:linear-gradient(180deg,rgba(24,34,46,.94),rgba(12,18,26,.95));padding:24px 18px 20px}
 .inv h3{margin:0 0 6px;padding-bottom:10px;font:700 1rem var(--disp);letter-spacing:.16em;text-transform:uppercase;color:var(--gold2);border-bottom:1px solid rgba(212,175,55,.35)}
 .inv h3 .ic{color:var(--gold)}
 ul{list-style:none;margin:0;padding:0;display:grid;gap:10px}
@@ -233,7 +237,7 @@ li.lk{--frame:linear-gradient(rgba(212,175,55,.35),rgba(212,175,55,.35));--ln:rg
 
 /* ---------- Fallbacks e preferências do usuário ---------- */
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
-  .sheet,.inv,.notebook{--fill:linear-gradient(180deg,rgba(24,34,46,.98),rgba(12,18,26,.98))}
+  .ov{background:rgba(3,6,9,.95)}
 }
 @media(prefers-contrast:more){
   :root{--mut:#cfdae2}
@@ -244,8 +248,9 @@ li.lk{--frame:linear-gradient(rgba(212,175,55,.35),rgba(212,175,55,.35));--ln:rg
 
 /* ---------- Mobile ---------- */
 @media(max-width:819px){
-  header{position:sticky;top:0;z-index:30;gap:8px 10px;padding:10px 14px;background:rgba(11,16,23,.95);border-bottom:1px solid rgba(212,175,55,.35);
-    -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+  header{position:sticky;top:0;z-index:30;gap:8px 10px;padding:10px 14px;background:rgba(11,16,23,.97);border-bottom:1px solid rgba(212,175,55,.35)}
+  /* no celular, desfoque é caro: modal com fundo opaco */
+  .ov{-webkit-backdrop-filter:none;backdrop-filter:none;background:rgba(3,6,9,.95)}
   h1{order:1;flex:1 1 calc(100% - 112px);min-width:0;padding:7px 14px;font-size:.95rem;letter-spacing:.1em}
   #snd{order:2}#rs{order:3}
   .hpbox{order:4;flex:1 1 120px}.lbl .t{display:none}
@@ -296,7 +301,8 @@ li.lk{--frame:linear-gradient(rgba(212,175,55,.35),rgba(212,175,55,.35));--ln:rg
   background:rgba(11,16,23,.85);border:1px solid currentColor;transition:transform .2s}
 .hs .mk .ic{margin:0;width:16px;height:16px}
 .hs.av{color:var(--cyan2)}
-.hs.av::before{border-color:rgba(79,195,247,.3);animation:ring 2.4s ease-out infinite}
+.hs.av::before{border-color:rgba(79,195,247,.3)}
+.hs.av::after{content:"";position:absolute;inset:0;pointer-events:none;border:2px solid rgba(79,195,247,.45);opacity:0;animation:ring 2.4s ease-out infinite}
 .hs.av .mk{box-shadow:0 0 12px rgba(79,195,247,.65);animation:mk 2.4s ease-in-out infinite}
 .hs.lk{color:var(--gold)}
 .hs.lk::before{border:1.5px dashed rgba(212,175,55,.32)}
@@ -311,7 +317,7 @@ li.lk{--frame:linear-gradient(rgba(212,175,55,.35),rgba(212,175,55,.35));--ln:rg
   font:700 .75rem var(--ui);letter-spacing:.12em;text-transform:uppercase;color:var(--gold2);background:rgba(11,16,23,.94);border:1px solid var(--gold3)}
 .hs:hover .hl,.hs:focus-visible .hl,.hs.flash .hl,.scene.hint .hs:not(.ok) .hl{opacity:1}
 .scene.hint .hs:not(.ok)::before,.hs.flash::before{border-color:var(--cyan2);box-shadow:0 0 28px rgba(155,231,255,.7),inset 0 0 26px rgba(155,231,255,.3);animation:blink .5s ease-in-out 5 alternate}
-@keyframes ring{0%{box-shadow:0 0 0 0 rgba(79,195,247,.35)}100%{box-shadow:0 0 0 14px rgba(79,195,247,0)}}
+@keyframes ring{0%{opacity:.9;transform:scale(1)}100%{opacity:0;transform:scale(1.05,1.08)}}
 @keyframes mk{50%{transform:scale(1.1)}}
 @keyframes blink{from{opacity:.35}to{opacity:1}}
 
@@ -331,5 +337,12 @@ li.lk{--frame:linear-gradient(rgba(212,175,55,.35),rgba(212,175,55,.35));--ln:rg
 /* ---------- Formato de resposta e modo de depuração (?debug=1) ---------- */
 .fmt{margin:8px 0 0;font-size:.85rem;color:var(--mut);letter-spacing:.04em}
 .dbg .hs::before{border:1px dashed #ff4fd8!important;background:rgba(255,79,216,.08)!important;animation:none!important}
-.dbg .hs::after{content:attr(data-box);position:absolute;left:0;top:0;padding:1px 5px;font:600 11px/1.3 monospace;color:#fff;background:rgba(120,0,100,.85);pointer-events:none;white-space:nowrap}
+.dbg .hs::after{inset:auto;border:0;opacity:1;transform:none;animation:none;content:attr(data-box);position:absolute;left:0;top:0;padding:1px 5px;font:600 11px/1.3 monospace;color:#fff;background:rgba(120,0,100,.85);pointer-events:none;white-space:nowrap}
 .dbgxy{position:absolute;right:8px;bottom:8px;z-index:5;padding:2px 8px;font:600 13px monospace;color:#fff;background:rgba(120,0,100,.85);pointer-events:none}
+
+/* ---------- Desempenho ---------- */
+/* a arte da cena vira uma camada própria: hotspots e partículas animando por cima não a repintam */
+.scene{contain:layout paint}
+.scene>svg{will-change:transform}
+/* animações contínuas param com modal aberto ou aba oculta (classe .calm no <html>) */
+.calm .scene::before,.calm .scene::after,.calm .hs::after,.calm .hs .mk,.calm .hpf{animation-play-state:paused!important}

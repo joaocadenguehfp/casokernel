@@ -1,6 +1,7 @@
 /* =====================================================================
    CENAS POINT AND CLICK (edite aqui). Carregado depois de cases.js.
-   SCENES[idDoCaso] = cena do caso (id de SEEDS em cases.js); ausente = modo linear (fallback).
+   SCENES[idDoCaso] = ()=>cena (função, montada só quando o caso abre; id de SEEDS em cases.js).
+   Ausente = modo linear (fallback).
    Cena: { intro, salas:[{id,nome,svg}], hotspots:[...], final:{titulo,texto,fala} }
    Hotspot: { caso (0-9, índice da fase em cases.js), sala (id), nome,
               x,y,w,h (em % da cena; use box(px) numa arte 1600x900),
@@ -21,7 +22,8 @@ const kPrints=()=>{let s="";for(let n=0;n<7;n++){const t=n/6,cx=650+t*470,cy=838
 const kBolts=(cx,cy,r,n)=>{let s="";for(let i=0;i<n;i++){const a=i/n*Math.PI*2;s+='<circle cx="'+(cx+Math.cos(a)*r).toFixed(1)+'" cy="'+(cy+Math.sin(a)*r).toFixed(1)+'" r="5"/>'}return s};
 const kStars=()=>[[130,150],[200,120],[330,150],[355,215],[160,230],[120,310],[360,300]].map(p=>'<circle cx="'+p[0]+'" cy="'+p[1]+'" r="1.8" fill="#cfeeff" opacity=".7"/>').join("");
 
-const SALA_COFRE=`<svg class="art" viewBox="0 0 1600 900" aria-hidden="true" focusable="false">
+/* As cenas são funções: a arte (strings grandes) só é montada quando o caso é aberto. */
+const salaCofre=()=>`<svg class="art" viewBox="0 0 1600 900" aria-hidden="true" focusable="false">
 <defs>
  <linearGradient id="kWall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#16212d"/><stop offset="1" stop-color="#0c131b"/></linearGradient>
  <linearGradient id="kFloor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#101a25"/><stop offset="1" stop-color="#05080c"/></linearGradient>
@@ -135,9 +137,9 @@ const SALA_COFRE=`<svg class="art" viewBox="0 0 1600 900" aria-hidden="true" foc
 </svg>`;
 
 const SCENES={
-cofre:{
+cofre:()=>({
   intro:"O cofre está vazio e o ladrão deixou tudo arrumado demais. Vamos ver o que cada objeto confessa.",
-  salas:[{id:"escritorio",nome:"Escritório do cofre arrombado",svg:SALA_COFRE}],
+  salas:[{id:"escritorio",nome:"Escritório do cofre arrombado",svg:salaCofre()}],
   hotspots:[
     {caso:0,sala:"escritorio",nome:"Pegadas no tapete",...box(540,740,700,130),
       falaAbrir:"Alguém atravessou o tapete sem pressa. Vejamos o rastro.",
@@ -189,5 +191,5 @@ cofre:{
     texto:"O retrato girou e mostrou o rosto de quem esvaziou o cofre. Cada conta fechou um elo, e a inversa da composição entregou o nome. Caso arquivado.",
     fala:"Nada some de verdade: só muda de lugar. E toda transformação deixa um núcleo para quem sabe olhar."
   }
-}
+})
 };

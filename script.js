@@ -97,7 +97,7 @@ setInterval(()=>{
   if(S.seed!==null&&!S.over&&!S.fin){S.t+=n-tk;$("tm").textContent=fmt(S.t);if(++ticks%5===0)save()}
   tk=n;
 },1000);
-document.addEventListener("visibilitychange",()=>{tk=Date.now();if(document.hidden)save()});
+document.addEventListener("visibilitychange",()=>{tk=Date.now();if(document.hidden)save();calm()});
 addEventListener("pagehide",save);
 
 /* ============ RENDERIZADOR MATEMÁTICO ============ */
@@ -111,12 +111,14 @@ const M=s=>s.replace(/\$(.+?)\$/g,(_,e)=>'<span class="m">'+mth(e)+"</span>");
 /* ============ ÁUDIO RETRÔ (Web Audio API) ============ */
 let ac;
 const ctx=()=>ac=ac||new(window.AudioContext||window.webkitAudioContext)();
+let nb=null;   /* 1 s de ruído branco, criado uma vez; o decaimento fica no ganho */
 function noise(t,d,v,fq){
-  const c=ctx(),b=c.createBuffer(1,Math.floor(c.sampleRate*d),c.sampleRate),a=b.getChannelData(0);
-  for(let k=0;k<a.length;k++)a[k]=(Math.random()*2-1)*(1-k/a.length);
-  const s=c.createBufferSource(),g=c.createGain(),f=c.createBiquadFilter();
-  f.type="bandpass";f.frequency.value=fq;g.gain.value=v;s.buffer=b;
-  s.connect(f);f.connect(g);g.connect(c.destination);s.start(c.currentTime+t);
+  const c=ctx();
+  if(!nb){nb=c.createBuffer(1,c.sampleRate,c.sampleRate);const a=nb.getChannelData(0);for(let k=0;k<a.length;k++)a[k]=Math.random()*2-1}
+  const s=c.createBufferSource(),g=c.createGain(),f=c.createBiquadFilter(),T=c.currentTime+t;
+  f.type="bandpass";f.frequency.value=fq;s.buffer=nb;
+  g.gain.setValueAtTime(v,T);g.gain.linearRampToValueAtTime(0,T+d);
+  s.connect(f);f.connect(g);g.connect(c.destination);s.start(T,Math.random()*(1-d),d);
 }
 function tone(fq,t,d,ty,v){
   const c=ctx(),o=c.createOscillator(),g=c.createGain(),T=c.currentTime+t;
@@ -139,7 +141,8 @@ function sfx(k){
 
 /* ============ MODAIS (foco, inert, fundo clicável) ============ */
 let ret=null,lastHS=null;
-const syncInert=()=>{const on=!!document.querySelector(".ov.on");["header","main"].forEach(s=>{document.querySelector(s).inert=on})};
+const calm=()=>document.documentElement.classList.toggle("calm",document.hidden||!!document.querySelector(".ov.on"));
+const syncInert=()=>{const on=!!document.querySelector(".ov.on");["header","main"].forEach(s=>{document.querySelector(s).inert=on});calm()};
 function openM(id,f){if(!document.querySelector(".ov.on"))ret=document.activeElement;$(id).classList.add("on");syncInert();$(f).focus()}
 function closeM(id,back){
   $(id).classList.remove("on");syncInert();
@@ -171,6 +174,7 @@ function parse(v,n){
   return !r.length||r.some(isNaN)?{bad:true}:{v:r};
 }
 const pts=()=>{const d=hsd(S.open);return Math.max(100-10*d.h-5*d.w,10)+(cur().d==="b"?50:0)};
+const setH=(el,h)=>{if(el._h!==h){el._h=h;el.innerHTML=h}};
 const anim=(id,cls)=>{const el=$(id);el.classList.remove(cls);void el.offsetWidth;el.classList.add(cls)};
 const nextLabel=()=>S.solved.length>=N?IC("trophy")+"Encerrar caso":(scn()?IC("search")+"Continuar investigação":IC("folder")+"Próxima fase");
 
@@ -298,18 +302,22 @@ function fillFC(i){
 }
 
 /* ---- render principal ---- */
+let invSig=null;
 function render(){
-  $("sc").innerHTML=IC("medal")+S.score+" pts";
+  setH($("sc"),IC("medal")+S.score+" pts");
   $("tm").textContent=fmt(S.t);
-  $("snd").innerHTML=IC(S.snd?"sound":"mute")+'<span class="t">'+(S.snd?"Áudio":"Mudo")+"</span>";
+  setH($("snd"),IC(S.snd?"sound":"mute")+'<span class="t">'+(S.snd?"Áudio":"Mudo")+"</span>");
   $("hpf").style.width=S.hp+"%";
   $("hpf").className="hpf"+(S.hp<=30?" low":S.hp<=60?" mid":"");
   $("hpt").textContent=S.hp+"/"+MAXHP;$("hp").setAttribute("aria-valuenow",S.hp);
   const sd=S.seed===null?null:SEEDS[S.seed],D=scn(),done=sd?S.solved.length:0;
   $("pf").style.width=(done/N*100)+"%";$("pb").setAttribute("aria-valuenow",done*10);
   $("folder").dataset.label="Caso nº 0417"+(sd?" · "+sd.nome:"");
+  const sig=S.seed+"|"+S.solved.join(",");   /* refaz o inventário só quando muda */
+  if(sig!==invSig){invSig=sig;
   $("inv").innerHTML=sd?Array.from({length:N},(_,k)=>S.solved.includes(k)?'<li class="cl"><button class="rl" data-k="'+k+'"><b>'+IC("pin")+sd.casos[k].t+"</b>"+FL[sd.casos[k].k].k+"</button></li>":'<li class="cl lk">'+IC("lock")+"Pista "+(k+1)+" oculta</li>").join(""):'<li class="cl lk">'+IC("lock")+"Escolha uma investigação.</li>";
   $("inv").querySelectorAll(".rl").forEach(b=>b.onclick=()=>relic(+b.dataset.k));
+  }
 
   /* qual modal deve estar aberto (o estado manda; recarregar a página restaura) */
   const want=(!sd||S.over||S.fin)?null:(S.fc!==null?"fc":(D&&S.open!==null?"pz":null));
@@ -440,3 +448,6 @@ document.addEventListener("keydown",e=>{
   if(e.key==="Enter"&&t!=="BUTTON"){e.preventDefault();check()}
 });
 render();
+/* offline: service worker (só em http/https, fora do modo de depuração) */
+if("serviceWorker" in navigator&&/^https?:$/.test(location.protocol)&&!DEBUG)
+  addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
