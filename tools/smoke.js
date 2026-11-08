@@ -173,6 +173,7 @@ const fmtAns=(a,dec)=>[].concat(a).map(v=>{
         fail(sd.id+": resposta certa não foi aceita na fase "+P.i+" ("+fmtAns(P.a,solved%2===1)+") "+fb);
       });
       solved++;
+      if(solved===1&&scene&&k===0&&!(await page.locator("#scene .pulse").count()))fail(sd.id+": objeto resolvido não pulsou");
       if(solved===1)await shot(sd.id+"-1-dossie");
       await page.click("#fcn");
       if(P.tool&&scene&&await page.evaluate(()=>typeof V3!=="undefined"&&V3.active!==null))fail(sd.id+": visualização 3D não foi liberada ao fechar o painel");
@@ -255,6 +256,17 @@ const fmtAns=(a,dec)=>[].concat(a).map(v=>{
   const want=[{v:[3,1]},{v:[2,1.5]},{v:[1.5]},{amb:true},{v:[.5]},{v:[-1,5]},{bad:true},{bad:true}];
   if(JSON.stringify(pr)!==JSON.stringify(want))fail("parser: "+JSON.stringify(pr));
   report.push("parser de respostas: ok");
+
+  /* trilha opcional: liga e desliga sem erros; começa desligada */
+  {
+    if(await page.evaluate(()=>musOn))fail("trilha começou ligada");
+    await page.click("#mus");await page.waitForTimeout(300);
+    if(!(await page.evaluate(()=>mus!==null&&$("mus").getAttribute("aria-pressed")==="true")))fail("trilha não ligou");
+    await page.click("#snd");if(await page.evaluate(()=>mus!==null))fail("trilha continuou com o áudio mudo");
+    await page.click("#snd");await page.click("#mus");
+    if(await page.evaluate(()=>mus!==null||musOn))fail("trilha não desligou");
+    report.push("trilha opcional: ok");
+  }
 
   /* paralaxe: o ponteiro desloca as camadas e os hotspots; com movimento reduzido, nada se move */
   if(!MOBILE){

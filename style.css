@@ -251,7 +251,7 @@ li.lk{--frame:linear-gradient(rgba(212,175,55,.35),rgba(212,175,55,.35));--ln:rg
   header{position:sticky;top:0;z-index:30;gap:8px 10px;padding:10px 14px;background:rgba(11,16,23,.97);border-bottom:1px solid rgba(212,175,55,.35)}
   /* no celular, desfoque é caro: modal com fundo opaco */
   .ov{-webkit-backdrop-filter:none;backdrop-filter:none;background:rgba(3,6,9,.95)}
-  h1{order:1;flex:1 1 calc(100% - 112px);min-width:0;padding:7px 14px;font-size:.95rem;letter-spacing:.1em}
+  h1{order:1;flex:1 1 calc(100% - 172px);min-width:0;padding:7px 14px;font-size:.95rem;letter-spacing:.1em}
   #snd{order:2}#rs{order:3}
   .hpbox{order:4;flex:1 1 120px}.lbl .t{display:none}
   #tm-box{order:5}#sc{order:6}
@@ -448,3 +448,12 @@ li.lk{--frame:linear-gradient(rgba(212,175,55,.35),rgba(212,175,55,.35));--ln:rg
 .scene [data-depth="0"]{transform:scale(1.04)}
 .hs{translate:var(--hx,0px) var(--hy,0px);transition:translate .35s ease-out}
 @media(prefers-reduced-motion:reduce){.scene [data-depth]{transform:none!important}.hs{translate:none}}
+
+/* ---------- Atmosfera: pulso único ao mudar de estado, botão da trilha ---------- */
+.scene [data-on].pulse{animation:pulse 1.2s ease-out 1}
+.hs.pulse::after{content:"";position:absolute;inset:-6px;border:2px solid var(--teal);opacity:0;animation:hpulse 1.2s ease-out 1}
+@keyframes pulse{0%{filter:drop-shadow(0 0 0 rgba(155,231,255,0))}35%{filter:drop-shadow(0 0 16px rgba(155,231,255,.95))}100%{filter:drop-shadow(0 0 0 rgba(155,231,255,0))}}
+@keyframes hpulse{0%{opacity:1;transform:scale(.96)}100%{opacity:0;transform:scale(1.12)}}
+#mus[aria-pressed=true]{--frame:linear-gradient(135deg,#bff0ff,#4fc3f7 50%,#16688f);--ln:#4fc3f7;color:#d6f4ff}
+#gyb[aria-pressed=true]{--frame:linear-gradient(135deg,#bff0ff,#4fc3f7 50%,#16688f);--ln:#4fc3f7}
+@media(max-width:819px){#mus{order:2}}

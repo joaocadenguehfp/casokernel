@@ -123,7 +123,7 @@ setInterval(()=>{
   else if(S.seed!==null&&!S.over&&!S.fin){S.t+=n-tk;$("tm").textContent=fmt(S.t);if(++ticks%5===0)save()}
   tk=n;
 },1000);
-document.addEventListener("visibilitychange",()=>{tk=Date.now();if(document.hidden)save();calm()});
+document.addEventListener("visibilitychange",()=>{tk=Date.now();if(document.hidden)save();calm();musSync()});
 addEventListener("pagehide",save);
 
 /* ============ RENDERIZADOR MATEMÁTICO ============ */
@@ -151,6 +151,34 @@ function tone(fq,t,d,ty,v){
   o.type=ty;o.frequency.setValueAtTime(fq,T);g.gain.setValueAtTime(v,T);
   g.gain.exponentialRampToValueAtTime(.001,T+d);o.connect(g);g.connect(c.destination);o.start(T);o.stop(T+d);
 }
+function sweep(f0,f1,t,d,ty,v){
+  const c=ctx(),o=c.createOscillator(),g=c.createGain(),T=c.currentTime+t;
+  o.type=ty;o.frequency.setValueAtTime(f0,T);o.frequency.exponentialRampToValueAtTime(f1,T+d);g.gain.setValueAtTime(v,T);
+  g.gain.exponentialRampToValueAtTime(.001,T+d);o.connect(g);g.connect(c.destination);o.start(T);o.stop(T+d);
+}
+/* ---- trilha noir opcional (desligada por padrão; botão próprio; para com a aba oculta ou o áudio mudo) ---- */
+const MKEY="caso-kernel-trilha";
+let musOn=(()=>{try{return localStorage.getItem(MKEY)==="1"}catch(e){return false}})(),mus=null;
+function musStart(){
+  if(mus||!musOn||!S.snd||document.hidden)return;
+  try{
+    const c=ctx();if(c.state==="suspended")c.resume();
+    const out=c.createGain();out.gain.setValueAtTime(0,c.currentTime);out.gain.linearRampToValueAtTime(.05,c.currentTime+2);out.connect(c.destination);
+    const lp=c.createBiquadFilter();lp.type="lowpass";lp.frequency.value=900;lp.connect(out);
+    const dr=[55,82.4,110.3].map((f,i)=>{const o=c.createOscillator(),g=c.createGain();o.type=i?"sine":"triangle";o.frequency.value=f;o.detune.value=i*4;g.gain.value=i===2?.25:.5;o.connect(g);g.connect(lp);o.start();return o});
+    const lfo=c.createOscillator(),lg=c.createGain();lfo.frequency.value=.07;lg.gain.value=.02;lfo.connect(lg);lg.connect(out.gain);lfo.start();
+    const esc=[220,261.6,293.7,329.6,392,440];   /* pentatônica menor de lá: notas esparsas */
+    const note=()=>{if(!mus)return;const T=c.currentTime,o=c.createOscillator(),g=c.createGain();o.type="sine";o.frequency.value=esc[Math.floor(Math.random()*esc.length)]*(Math.random()<.3?.5:1);
+      g.gain.setValueAtTime(0,T);g.gain.linearRampToValueAtTime(.35,T+.08);g.gain.exponentialRampToValueAtTime(.001,T+2.4);o.connect(g);g.connect(lp);o.start(T);o.stop(T+2.5)};
+    mus={out,osc:dr.concat([lfo]),iv:setInterval(note,2600+Math.random()*1500)};
+  }catch(e){mus=null}
+}
+function musStop(){
+  if(!mus)return;const m=mus;mus=null;clearInterval(m.iv);
+  try{const c=ctx();m.out.gain.cancelScheduledValues(c.currentTime);m.out.gain.setValueAtTime(m.out.gain.value,c.currentTime);m.out.gain.linearRampToValueAtTime(0,c.currentTime+.6);
+    setTimeout(()=>{m.osc.forEach(o=>{try{o.stop()}catch(e){}});m.out.disconnect()},700)}catch(e){}
+}
+function musSync(){musOn&&S.snd&&!document.hidden?musStart():musStop();const b=$("mus");if(b){b.setAttribute("aria-pressed",musOn);b.innerHTML=IC("music")+'<span class="t">Trilha</span>'}}
 function sfx(k){
   if(!S.snd)return;
   try{
@@ -162,6 +190,9 @@ function sfx(k){
     if(k==="no"){noise(0,.15,.9,200);tone(70,0,.3,"sawtooth",.3)}
     if(k==="win")[0,.15,.3,.45].forEach((t,i)=>tone(523*(1+i*.25),t,.4,"triangle",.2));
     if(k==="lose")[0,.25,.5].forEach((t,i)=>tone(220/(1+i*.3),t,.45,"sawtooth",.2));
+    if(k==="door"){noise(0,.18,.7,160);sweep(180,90,.05,.35,"sawtooth",.05);noise(.32,.08,.6,120)}   /* porta pesada: rangido e batida */
+    if(k==="paper"){noise(0,.06,.35,4200);noise(.07,.09,.3,5200)}                                   /* folhas do dossiê */
+    if(k==="unlock"){noise(0,.03,.5,3000);tone(1320,.03,.08,"square",.05);tone(1760,.11,.12,"square",.05)}  /* trava abrindo */
   }catch(e){}
 }
 
@@ -250,7 +281,7 @@ function buildScene(final){
   }
   g.innerHTML=h;
   g.querySelectorAll(".hs").forEach(b=>b.onclick=()=>hsClick(+b.dataset.k));
-  g.querySelectorAll("[data-room]").forEach(b=>b.onclick=()=>{S.room=b.dataset.room;save();render()});
+  g.querySelectorAll("[data-room]").forEach(b=>b.onclick=()=>{if(S.room!==b.dataset.room)sfx("door");S.room=b.dataset.room;save();render()});
   if($("hlt"))$("hlt").onclick=flashAll;
   if(final)$("again").onclick=reset;
   const sc0=$("scene");sc0.classList.add("nt");paintScene();   /* 1ª pintura sem transição */
@@ -294,9 +325,16 @@ async function gyroToggle(){
   }
   const b=$("gyb");if(b)b.setAttribute("aria-pressed",gyroOn);sfx("key");
 }
+let painted=null;   /* o que já estava resolvido/disponível na última pintura da cena */
 function paintScene(){
   const D=scn(),s=$("scene");if(!s)return;
-  const R=S.solved;
+  const R=S.solved,key=S.seed+":"+s.dataset.key,av=D.hotspots.filter(h=>!R.includes(h.caso)&&isAv(S,h.caso)).map(h=>h.caso);
+  if(painted&&painted.key===key){
+    const novos=R.filter(k=>!painted.R.includes(k));
+    novos.forEach(k=>s.querySelectorAll('[data-on="'+k+'"],#hs'+k).forEach(e=>{e.classList.remove("pulse");void e.getBoundingClientRect();e.classList.add("pulse");setTimeout(()=>e.classList.remove("pulse"),1300)}));
+    if(av.some(k=>!painted.av.includes(k))&&novos.length)setTimeout(()=>sfx("unlock"),450);
+  }
+  painted={key,R:R.slice(),av};
   s.querySelectorAll(".hs").forEach(b=>{
     const k=+b.dataset.k,h=D.hotspots.find(x=>x.caso===k),ok=R.includes(k),av=!ok&&isAv(S,k);
     b.classList.remove("av","lk","ok");b.classList.add(ok?"ok":av?"av":"lk");
@@ -545,7 +583,7 @@ function render(){
   }
   if(want==="fc"){
     fillFC(S.fc);
-    if(!$("fc").classList.contains("on"))openM("fc","fcn");
+    if(!$("fc").classList.contains("on")){openM("fc","fcn");sfx("paper")}
   }
 }
 
@@ -610,7 +648,10 @@ function reset(){
 }
 
 $("rs").onclick=()=>{if((S.seed===null&&!S.ta)||(S.ta&&S.ta.end)||confirm("Reiniciar e voltar à escolha de casos? O progresso atual será apagado."))reset()};
-$("snd").onclick=()=>{S.snd=!S.snd;save();render()};
+$("snd").onclick=()=>{S.snd=!S.snd;save();render();musSync()};
+$("mus").onclick=()=>{musOn=!musOn;try{localStorage.setItem(MKEY,musOn?"1":"0")}catch(e){}musSync()};
+/* o navegador só toca som depois de um gesto: a trilha salva como ligada começa no 1º toque */
+addEventListener("pointerdown",()=>{if(musOn)musSync()},{once:true});
 $("ovb").onclick=()=>closeM("ov",true);
 $("fcn").onclick=next;
 /* clicar no fundo: dossiê/painel fecham sem custo; o final só fecha o aviso */
