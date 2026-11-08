@@ -141,6 +141,51 @@ const fmtAns=(a,dec)=>[].concat(a).map(v=>{
     report.push(sd.id+": ok ("+(scene?"cena":"linear")+", "+st.score+" pts, "+st.hp+" HP, maior tarefa ao abrir: "+openLong+" ms)");
   }
 
+  /* modo Investigador: erro não tira vida e a pontuação cai pela metade */
+  await wipe();
+  await page.click('.mode[data-m="inv"]');
+  await page.locator(".seedc[data-k]").first().click();
+  await page.waitForSelector("#scene");
+  await page.locator(".hs.av").first().click();await page.waitForSelector("#pz.on");
+  {
+    const P=await page.evaluate(()=>{const c=cur();return {type:c.type,a:c.a,o:c.o}});
+    if(P.type==="choice")await page.locator("#pzb .opt").nth((P.a+1)%P.o.length).click();else await page.fill("#ans","999");
+    await page.click("#chk");
+    if(await page.evaluate(()=>S.hp)!==100)fail("Investigador: erro tirou vida");
+    if(P.type==="choice")await page.locator("#pzb .opt").nth(P.a).click();else await page.fill("#ans",fmtAns(P.a,false));
+    await page.click("#chk");await page.waitForSelector("#fc.on");
+    const st=await page.evaluate(()=>({sc:S.score,m:S.mode,hp:S.hp,txt:$("hpt").textContent}));
+    if(st.m!=="inv"||st.sc!==48||st.hp!==100||st.txt!=="Sem dano")fail("Investigador: estado inesperado "+JSON.stringify(st));
+    await page.click("#fcn");
+    await page.reload();
+    if(await page.evaluate(()=>S.mode)!=="inv")fail("Investigador: modo não sobreviveu à recarga");
+  }
+  report.push("modo Investigador: ok");
+
+  /* Time Attack: 3 acertos, 1 erro (−10 s), fim do tempo e recorde */
+  await wipe();
+  await page.click("#tab");
+  await page.waitForSelector("#game .cs");
+  for(let k=0;k<3;k++){
+    const a=await page.evaluate(()=>cur().a);
+    await page.fill("#ans",fmtAns(a,k===1));await page.click("#chk");
+    await page.waitForFunction(n=>S.ta.n===n,k+1);
+  }
+  {
+    const l0=await page.evaluate(()=>S.ta.left);
+    await page.fill("#ans","999");await page.click("#chk");
+    const t=await page.evaluate(()=>({w:S.ta.w,left:S.ta.left,score:S.ta.score}));
+    if(t.w!==1||l0-t.left<10000||t.score<150)fail("Time Attack: placar inesperado "+JSON.stringify(t));
+    await page.reload();
+    if(await page.evaluate(()=>!S.ta||S.ta.n!==3))fail("Time Attack: estado não voltou após recarregar");
+    await page.evaluate(()=>{S.ta.left=600});
+    await page.waitForSelector("#tagain",{timeout:5000});
+    const r=await page.evaluate(()=>({end:S.ta.end,best:best["@ta"],score:S.ta.score}));
+    if(!r.end||r.best!==r.score)fail("Time Attack: recorde não salvo "+JSON.stringify(r));
+    await shot("time-attack-fim");
+  }
+  report.push("Time Attack: ok");
+
   /* migração do save v4 (seed = índice) e dos recordes antigos */
   await wipe({"caso-kernel-v4":JSON.stringify({seed:1,hp:70,score:200,solved:[0,1],hs:{},open:null,room:null,snd:true,t:5000}),
     "caso-kernel-best":JSON.stringify({0:12000,2:9000})});
