@@ -2,7 +2,9 @@
    CENAS POINT AND CLICK (edite aqui). Carregado depois de cases.js.
    SCENES[idDoCaso] = ()=>cena (função, montada só quando o caso abre; id de SEEDS em cases.js).
    Ausente = modo linear (fallback).
-   Cena: { intro, salas:[{id,nome,svg}], hotspots:[...], final:{titulo,texto,fala} }
+   Cena: { intro, salas:[{id,nome,svg}], hotspots:[...], interrogatorio:[...], final:{texto,fala} }
+   Interrogatório (antes do chefão): [{fala (depoimento falso), pista (índice da fase que o
+              desmente), refuta (resposta do detetive)}], na ordem em que são feitos.
    Hotspot: { caso (0-9, índice da fase em cases.js), sala (id), nome,
               x,y,w,h (em % da cena; use box(px) numa arte 1600x900),
               requires:[índices de fases que precisam estar resolvidas],
@@ -388,6 +390,14 @@ const sceneFantasma=()=>({
       falaResolvido:"A cortina se abriu. O fantasma era de carne e osso, e a inversa o entregou.",
       pista:"Matriz triangular se inverte de baixo para cima, uma coordenada por vez."}
   ],
+  interrogatorio:[
+    {pista:1,fala:"A ficha é 2×3, então ela leva vetores do ℝ² para o ℝ³.",
+      refuta:"Matriz m×n leva ℝⁿ em ℝᵐ. A ficha 2×3 vai do ℝ³ para o ℝ²."},
+    {pista:6,fala:"(A+B)² = A² + 2AB + B², como em qualquer conta de colégio.",
+      refuta:"Só se AB = BA. Em geral, (A+B)² = A² + AB + BA + B²."},
+    {pista:8,fala:"Se DT é a identidade, TD também é. Derivar e integrar dá no mesmo em qualquer ordem.",
+      refuta:"TD(p) = p − p(0): as constantes somem. DT = I não garante TD = I."}
+  ],
   final:{
     texto:"A cortina se abriu e o fantasma tinha nome, endereço e uma matriz triangular no bolso. Cada potência, cada soma e cada inversa fechou uma saída do teatro. Caso arquivado.",
     fala:"Fantasmas não existem. Matrizes que não comutam, sim."
@@ -561,6 +571,14 @@ const sceneDependencia=()=>({
       falaAbrir:"O suspeito desfazia o que fazia… quase. Cada coeficiente guarda a marca.",
       falaResolvido:"TS não é a identidade: o c₀ apagado denunciou o culpado.",
       pista:"TS apaga c₀ e devolve o resto; repetir não muda mais nada."}
+  ],
+  interrogatorio:[
+    {pista:0,fala:"A reação exponencial é tão linear quanto as outras. Eu só segui a fórmula.",
+      refuta:"e⁰ = 1: a exponencial não leva zero em zero, então não é linear."},
+    {pista:4,fala:"Cinco gavetas, cinco vetores: são independentes e geram um espaço de dimensão cinco.",
+      refuta:"A₅ = A₄ − A₁. O conjunto é LD e o espaço-linha tem dimensão 4."},
+    {pista:8,fala:"Uma transformação injetora pode juntar vetores independentes numa mesma direção.",
+      refuta:"Se T é injetora, N(T) = {0}, e ela leva vetores LI em vetores LI."}
   ],
   final:{
     texto:"A cabine se abriu e o culpado estava lá dentro, cercado de vetores que jurava independentes. Um deles não era. Caso arquivado.",
@@ -748,6 +766,14 @@ const sceneObservatorio=()=>({
       falaResolvido:"A reta apontou o esconderijo. O astrônomo nunca saiu do observatório.",
       pista:"Mínimos quadrados: resolva AᵀA·c = Aᵀy."}
   ],
+  interrogatorio:[
+    {pista:4,fala:"Aquela matriz hermitiana tinha autovalores complexos. Ninguém poderia confiar nas medidas.",
+      refuta:"Matriz hermitiana tem autovalores sempre reais. O prisma provou isso."},
+    {pista:5,fala:"Girar o globo distorce as distâncias. Por isso as minhas medidas não batem com as suas.",
+      refuta:"Rotação é ortogonal: QᵀQ = I, e comprimentos e ângulos são preservados."},
+    {pista:7,fala:"A órbita era uma hipérbole. Os planetas fugiram e levaram as provas.",
+      refuta:"Os dois autovalores da forma são positivos: a órbita é uma elipse, fechada."}
+  ],
   final:{
     texto:"A reta de mínimos quadrados cruzou o gráfico e apontou um único lugar: o próprio cavalete, onde o astrônomo se escondia. Cada autovalor indicou uma direção, e todas convergiram. Caso arquivado.",
     fala:"No fim, todo erro tem um mínimo. Basta saber projetar."
@@ -804,6 +830,14 @@ cofre:()=>({
       falaAbrir:"Todos os rastros apontam para este rosto. Uma última conta.",
       falaResolvido:"Era ele. O caso está resolvido.",
       pista:"A inversa da composição entrega o endereço do suspeito."}
+  ],
+  interrogatorio:[
+    {pista:0,fala:"Eu só somei uma constante às coordenadas. Uma transformação dessas continua sendo linear.",
+      refuta:"Somar uma constante tira a origem do lugar: T(0) deixa de ser 0. Não é linear."},
+    {pista:6,fala:"A ordem não importa: arrombar e depois esconder dá no mesmo que esconder e depois arrombar. ST e TS são iguais.",
+      refuta:"Composição tem ordem. ST aplica T primeiro; aqui TS nem está definida, porque S sai do ℝ² e chega ao ℝ³."},
+    {pista:8,fala:"Minha transformação não apaga nada. O núcleo de ST é só o vetor zero.",
+      refuta:"O núcleo de ST tem dimensão 1: a direção inteira de (−1, 1, 1) vai para zero."}
   ],
   final:{
     texto:"O retrato girou e mostrou o rosto de quem esvaziou o cofre. Cada conta fechou um elo, e a inversa da composição entregou o nome. Caso arquivado.",

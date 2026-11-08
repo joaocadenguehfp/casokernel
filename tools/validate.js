@@ -261,6 +261,19 @@ for(const id in SCENES){
     if(miss.length)E(w0,"o chefão (fase "+boss+") abre antes das fases "+miss.join(","));
   }
   if(!hs.some(h=>!(h.requires||[]).length))E(w0,"nenhum hotspot começa disponível");
+  /* interrogatório do chefão: 3 depoimentos, cada um desmentido por uma pista anterior ao chefão */
+  const iq=D.interrogatorio;
+  if(!Array.isArray(iq))W(w0,"sem interrogatório no chefão");
+  else{
+    if(iq.length!==3)E(w0,"interrogatório precisa de 3 depoimentos");
+    const used=new Set();
+    iq.forEach((q,k)=>{
+      const w=w0+" depoimento "+(k+1);
+      if(!q.fala||!q.refuta)E(w,"precisa de fala e refuta");
+      if(!(Number.isInteger(q.pista)&&q.pista>=0&&q.pista<N)||q.pista===boss)E(w,"pista inválida: "+q.pista);
+      if(used.has(q.pista))E(w,"pista repetida: "+q.pista);used.add(q.pista);
+    });
+  }
 }
 for(const k in svgIds)if(svgIds[k].size>1){
   const scenes=new Set([...svgIds[k]].map(x=>x.split("/")[0]));

@@ -372,3 +372,13 @@ li.lk{--frame:linear-gradient(rgba(212,175,55,.35),rgba(212,175,55,.35));--ln:rg
 .seedc.ta b{color:#ffd9b0}
 .mtag{display:inline-flex;align-items:center;margin-top:4px;color:var(--cyan2)}
 @media(max-width:819px){.modes{grid-template-columns:1fr}}
+
+/* ---------- Interrogatório ---------- */
+.dep{margin:14px 0;padding:14px 18px;border-left:3px solid var(--red);background:linear-gradient(90deg,rgba(255,90,77,.14),transparent);font:italic 600 1.15rem/1.45 var(--ui);color:#ffd2cc}
+.dep .who{display:block;margin-bottom:4px;font:700 .72rem var(--disp);font-style:normal;letter-spacing:.2em;text-transform:uppercase;color:#ff9a8f}
+.iqopts .opt{font-size:1rem}
+.iqopts small{color:var(--mut);font-weight:500}
+.iqok{margin:10px 0;padding:8px 14px;border-left:3px solid var(--teal);background:linear-gradient(90deg,rgba(63,208,160,.14),transparent);color:#bdf5df}
+.iqok .ic{color:var(--teal)}
+.iq #fb{margin:0 0 12px}
+@media(min-width:820px){.iqopts{grid-template-columns:1fr 1fr}}

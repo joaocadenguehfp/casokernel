@@ -81,6 +81,22 @@ const fmtAns=(a,dec)=>[].concat(a).map(v=>{
         await page.locator(".hs.av").first().click();
         await page.waitForSelector("#pz.on");
       }
+      /* interrogatório antes do chefão: no 1º caso, apresenta uma pista errada antes */
+      let iqWrong=k===0;
+      while(scene&&await page.locator("#pzb .iqopt").count()){
+        const q=await page.evaluate(()=>({p:iqList()[S.iq].pista,iq:S.iq,hp:S.hp}));
+        if(iqWrong){
+          const other=await page.locator('#pzb .iqopt:not([data-k="'+q.p+'"])').first().getAttribute("data-k");
+          await page.click('#pzb .iqopt[data-k="'+other+'"]');
+          const hp=await page.evaluate(()=>S.hp);
+          if(hp!==q.hp-await page.evaluate(()=>HIT)||await page.evaluate(()=>S.iq)!==q.iq)fail(sd.id+": pista errada no interrogatório não foi punida");
+          await shot(sd.id+"-interrogatorio");
+          iqWrong=false;
+        }
+        await page.click('#pzb .iqopt[data-k="'+q.p+'"]');
+        await page.waitForFunction(n=>S.iq===n,q.iq+1);
+      }
+      if(scene&&await page.evaluate(()=>cur().d==="b"&&iqList().length&&S.iq<iqList().length))fail(sd.id+": chefão abriu sem interrogatório");
       const P=await page.evaluate(()=>{const c=cur();return {type:c.type,a:c.a,o:c.o,i:S.open,hp:S.hp}});
       const box=scene?"#pzb":"#game";
       if(!erred){ /* erra de propósito uma vez */

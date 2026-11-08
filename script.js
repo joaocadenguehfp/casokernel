@@ -32,7 +32,7 @@ const sceneAt=i=>{if(!hasScene(i))return null;const id=SID[i];return scCache[id]
 /* rs: semente da partida (sorteio dos problemas com g, ver cases.js) */
 const newRs=()=>Math.floor(Math.random()*4294967296);
 const TA_MS=180000,TA_PEN=10000,TA_PTS={f:50,m:100,d:150,b:200};
-const fresh=()=>({seed:null,mode:"det",pmode:"det",ta:null,rs:0,hp:MAXHP,score:0,solved:[],hs:{},open:null,sv:false,sel:null,fc:null,last:0,room:null,snd:true,over:false,fin:false,t:0});
+const fresh=()=>({seed:null,iq:0,mode:"det",pmode:"det",ta:null,rs:0,hp:MAXHP,score:0,solved:[],hs:{},open:null,sv:false,sel:null,fc:null,last:0,room:null,snd:true,over:false,fin:false,t:0});
 const rdj=k=>{try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}};
 const sceneOf=s=>sceneAt(s.seed);
 const isAv=(s,i)=>{
@@ -73,7 +73,7 @@ function sanitize(s){
   }
   if(!(Number.isInteger(s.seed)&&SEEDS[s.seed]))return base;
   const I=v=>Number.isInteger(v)&&v>=0&&v<N&&!!SEEDS[s.seed].casos[v];
-  const r=Object.assign(base,{seed:s.seed,mode:s.mode==="inv"?"inv":"det",rs:Number.isInteger(s.rs)&&s.rs>0&&s.rs<4294967296?s.rs:newRs(),hp:n(s.hp,0,MAXHP,MAXHP),score:n(s.score,0,1e6,0),t:n(s.t,0,1e9,0),last:n(s.last,0,1e4,0),over:!!s.over,fin:!!s.fin});
+  const r=Object.assign(base,{seed:s.seed,iq:n(s.iq,0,9,0),mode:s.mode==="inv"?"inv":"det",rs:Number.isInteger(s.rs)&&s.rs>0&&s.rs<4294967296?s.rs:newRs(),hp:n(s.hp,0,MAXHP,MAXHP),score:n(s.score,0,1e6,0),t:n(s.t,0,1e9,0),last:n(s.last,0,1e4,0),over:!!s.over,fin:!!s.fin});
   r.solved=[...new Set((Array.isArray(s.solved)?s.solved:[]).filter(I))];
   const hs={};
   if(s.hs&&typeof s.hs==="object")for(const k in s.hs){const e=s.hs[k];if(I(+k)&&e)hs[k]={h:n(e.h,0,2,0),w:n(e.w,0,999,0)}}
@@ -318,12 +318,18 @@ function puzzleHTML(P,i,modal){
       '<p class="fmt" id="fmt">'+(n>1?"Resposta com "+n+" números separados por vírgula. Com decimais, use ponto (1.5) ou separe por ponto e vírgula: 2; 1,5.":"Decimais: 1.5 ou 1,5. Frações: 1/2.")+"</p>";
   }
   if(!sv)h+='<div class="row"><button class="btn stamp" id="chk">'+IC("search")+'Analisar resposta</button>'+(ta?"":'<button class="btn cyan" id="hb"'+(d.h>=2?" disabled":"")+">"+IC("bulb")+"Pedir dica"+(INV()?"":" (−"+HINT+" HP)")+"</button>")+(modal?'<button class="btn" id="bk">'+IC("eye")+"Voltar à cena</button>":"")+"</div>";
+  if(modal&&iqMsg&&b)h+='<p class="iqok">'+IC("check")+iqMsg+"</p>";
   for(let k=0;k<d.h;k++)h+='<div class="hint">'+IC("bulb")+M(P.h[k])+"</div>";
   h+='<div id="fb" role="status">'+(sv?'<span class="carimbo v">Acertou!</span> <span class="good">+'+S.last+" pts · +"+HEAL+' HP</span><div class="row"><button class="btn" id="rv">'+IC("note")+'Rever dossiê</button><button class="btn stamp" id="nx">'+nextLabel()+"</button></div>":"")+"</div></div>";
   return h;
 }
 function renderPuzzle(box,i,modal){
   /* preserva o que foi digitado quando render() roda por dica/erro no mesmo problema */
+  if(modal&&iqPending(i)){
+    qk="";box.innerHTML=iqHTML(i);
+    box.querySelectorAll(".iqopt").forEach(b=>b.onclick=()=>iqPick(+b.dataset.k));
+    $("bk").onclick=closePz;return;
+  }
   const key=S.ta?"ta:"+S.ta.q.s+":"+S.ta.q.i+":"+S.ta.q.rs:S.seed+":"+i,keep=($("ans")&&qk===key)?$("ans").value:"";
   box.innerHTML=puzzleHTML(S.ta?cur():caseAt(i),i,modal);
   if(!modal&&enter){const c=box.firstElementChild;if(c)c.classList.add("enter");enter=false}
@@ -337,6 +343,31 @@ function renderPuzzle(box,i,modal){
   if($("bk"))$("bk").onclick=closePz;
   if($("rv"))$("rv").onclick=()=>{S.fc=S.open;save();render()};
   if($("nx"))$("nx").onclick=next;
+}
+
+/* ---- interrogatório por contradição (antes do problema do chefão) ---- */
+let iqMsg="";
+const IQ_ZOMBA=["O suspeito ri: “Essa pista não prova nada.”","“Detetive, isso nem tem a ver com o que eu disse.”","Ele cruza os braços: “Tente outra vez.”"];
+const iqList=()=>{const D=scn();return D&&D.interrogatorio||[]};
+const iqPending=i=>!S.ta&&!!scn()&&caseAt(i).d==="b"&&S.iq<iqList().length;
+function iqHTML(i){
+  const L=iqList(),dep=L[S.iq],H=scn().hotspots.find(x=>x.caso===i),sd=SEEDS[S.seed];
+  return '<div class="cs boss iq"><div class="carimbo suspeito">Interrogatório</div><div class="fase">'+IC("pin")+H.nome+" · Depoimento "+(S.iq+1)+" de "+L.length+"</div>"+
+    "<h2>"+IC("eye")+"Confronto com o suspeito</h2>"+(iqMsg?'<p class="iqok">'+IC("check")+iqMsg+"</p>":"")+
+    '<blockquote class="dep"><span class="who">Suspeito</span>“'+M(dep.fala)+"”</blockquote>"+
+    '<p class="q">'+IC("search")+"Apresente a pista do inventário que desmente o depoimento.</p><div id=\"fb\" role=\"status\"></div>"+
+    '<div class="opts iqopts" role="group" aria-label="Pistas do inventário">'+S.solved.filter(k=>k!==i).sort((a,b)=>a-b).map(k=>'<button class="btn opt iqopt" data-k="'+k+'"><b>'+sd.casos[k].t+"</b> <small>"+FL[sd.casos[k].k].k+"</small></button>").join("")+"</div>"+
+    '<div class="row"><button class="btn" id="bk">'+IC("eye")+"Voltar à cena</button></div></div>";
+}
+function iqPick(k){
+  const dep=iqList()[S.iq];
+  if(k===dep.pista){
+    S.iq++;iqMsg=dep.refuta;sfx("ok");say("Detetive",dep.refuta);save();render();anim("folder","ok");
+    const f=document.querySelector("#pzb .iqopt")||$("ans")||$("chk");if(f)f.focus();
+  }else{
+    hsd(S.open).w++;sfx("no");damage(HIT);
+    if(!S.over)msg(IQ_ZOMBA[Math.floor(Math.random()*IQ_ZOMBA.length)]+(INV()?"":" (−"+HIT+" HP)"));
+  }
 }
 
 /* ---- resumo final: conceitos com mais erros e dicas ---- */
@@ -468,7 +499,7 @@ function relic(k){
   if(scn()){const h=scn().hotspots.find(x=>x.caso===k);lastHS=k;flashOne(k);say("Detetive","Esta pista veio de: "+h.nome+".")}
   else{S.fc=k;save();render()}
 }
-function closePz(){S.open=null;S.sel=null;save();render();backFocus()}
+function closePz(){S.open=null;S.sel=null;iqMsg="";save();render();backFocus()}
 function dismissFC(){if(scn())next();else{S.fc=null;save();render()}}
 function damage(n){
   if(!INV())S.hp=Math.max(0,S.hp-n);   /* Investigador: erros e dicas contam no resumo, mas não ferem */
@@ -517,7 +548,7 @@ function next(){
   if(scn())backFocus();
 }
 function reset(){
-  const s=S.snd,pm=S.pmode;S=fresh();S.snd=s;S.pmode=pm;qk="";dlgSeed=null;lastHS=null;invSig=null;
+  const s=S.snd,pm=S.pmode;S=fresh();iqMsg="";S.snd=s;S.pmode=pm;qk="";dlgSeed=null;lastHS=null;invSig=null;
   if($("ov").classList.contains("on"))closeM("ov",false);
   save();render();
 }
