@@ -5,7 +5,7 @@
    - Casos sem cena: modo linear (fallback), igual ao jogo anterior.
    ===================================================================== */
 const KEY="caso-kernel-v5",V4KEY="caso-kernel-v4",V3KEY="caso-kernel-v3",BKEY="caso-kernel-best-v2",OLDBKEY="caso-kernel-best",
-  MAXHP=100,HIT=10,HINT=20,HEAL=10,N=10;
+  MAXHP=100,HIT=15,HINT=10,HEAL=10,N=10;   /* dica mais barata que erro: pedir ajuda vale mais que chutar */
 const $=id=>document.getElementById(id);
 const IC=n=>'<svg class="ic" aria-hidden="true" focusable="false"><use href="#i-'+n+'"/></svg>';
 const DIF={f:["◆","Fácil"],m:["◆","Médio"],d:["◆","Difícil"],b:["◆","Chefão"]};
@@ -25,7 +25,9 @@ const sceneAt=i=>{if(!hasScene(i))return null;const id=SID[i];return scCache[id]
 /* ============ ESTADO E PERSISTÊNCIA (v5) ============ */
 /* solved: fases resolvidas | hs: {fase:{h:dicas,w:erros}} | open: fase com painel aberto
    fc: dossiê aberto | sv/last: só no modo linear (feedback "Acertou") | room: sala atual */
-const fresh=()=>({seed:null,hp:MAXHP,score:0,solved:[],hs:{},open:null,sv:false,sel:null,fc:null,last:0,room:null,snd:true,over:false,fin:false,t:0});
+/* rs: semente da partida (sorteio dos problemas com g, ver cases.js) */
+const newRs=()=>Math.floor(Math.random()*4294967296);
+const fresh=()=>({seed:null,rs:0,hp:MAXHP,score:0,solved:[],hs:{},open:null,sv:false,sel:null,fc:null,last:0,room:null,snd:true,over:false,fin:false,t:0});
 const rdj=k=>{try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}};
 const sceneOf=s=>sceneAt(s.seed);
 const isAv=(s,i)=>{
@@ -60,7 +62,7 @@ function sanitize(s){
   if(!(Number.isInteger(s.seed)&&SEEDS[s.seed]))return base;
   const n=(v,a,b,f)=>Number.isFinite(v)&&v>=a&&v<=b?v:f;
   const I=v=>Number.isInteger(v)&&v>=0&&v<N&&!!SEEDS[s.seed].casos[v];
-  const r=Object.assign(base,{seed:s.seed,hp:n(s.hp,0,MAXHP,MAXHP),score:n(s.score,0,1e6,0),t:n(s.t,0,1e9,0),last:n(s.last,0,1e4,0),over:!!s.over,fin:!!s.fin});
+  const r=Object.assign(base,{seed:s.seed,rs:Number.isInteger(s.rs)&&s.rs>0&&s.rs<4294967296?s.rs:newRs(),hp:n(s.hp,0,MAXHP,MAXHP),score:n(s.score,0,1e6,0),t:n(s.t,0,1e9,0),last:n(s.last,0,1e4,0),over:!!s.over,fin:!!s.fin});
   r.solved=[...new Set((Array.isArray(s.solved)?s.solved:[]).filter(I))];
   const hs={};
   if(s.hs&&typeof s.hs==="object")for(const k in s.hs){const e=s.hs[k];if(I(+k)&&e)hs[k]={h:n(e.h,0,2,0),w:n(e.w,0,999,0)}}
@@ -85,7 +87,15 @@ const save=()=>{try{
 }catch(e){}};
 const scn=()=>sceneAt(S.seed);
 const bestOf=i=>best[SID[i]];
-const cur=()=>SEEDS[S.seed].casos[S.open];
+/* fase i do caso atual, já com o sorteio da partida aplicado (memorizado) */
+const gMemo={};
+function caseAt(i){
+  const P=SEEDS[S.seed].casos[i];if(typeof P.g!=="function")return P;
+  const key=S.seed+":"+i+":"+S.rs;if(gMemo[key])return gMemo[key];
+  let h=S.rs^0x9E3779B9;for(const ch of SID[S.seed]+":"+i)h=Math.imul(h^ch.charCodeAt(0),16777619);
+  return gMemo[key]=Object.assign({},P,P.g(mkR(h>>>0)));
+}
+const cur=()=>caseAt(S.open);
 const hsd=i=>S.hs[i]||(S.hs[i]={h:0,w:0});
 const fmt=ms=>{const s=Math.floor(ms/1000);return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0")};
 
@@ -199,7 +209,7 @@ function buildScene(final){
   if(DEBUG)h+='<output class="dbgxy" id="dbgxy">x, y</output>';
   h+='</div></div><p class="keys pan">Arraste a cena para os lados para explorar.</p><div class="dlg" id="dlg" role="status" aria-live="polite"></div>';
   if(final){
-    h+='<div class="fim"><h2>'+IC("trophy")+'Caso resolvido</h2><div class="carimbo v">Arquivado</div><p class="story">'+D.final.texto+"</p><p><b>"+SEEDS[S.seed].nome+"</b><br>"+IC("medal")+"Pontuação: <b>"+S.score+"</b> · "+IC("heart")+"Vida: "+S.hp+"/"+MAXHP+"<br>"+IC("clock")+"Tempo total: <b>"+fmt(S.t)+"</b> · "+IC("flag")+"Melhor: "+fmt(bestOf(S.seed))+'</p><button class="btn stamp" id="again">'+IC("folder")+"Escolher outro caso</button></div>";
+    h+='<div class="fim"><h2>'+IC("trophy")+'Caso resolvido</h2><div class="carimbo v">Arquivado</div><p class="story">'+D.final.texto+"</p><p><b>"+SEEDS[S.seed].nome+"</b><br>"+IC("medal")+"Pontuação: <b>"+S.score+"</b> · "+IC("heart")+"Vida: "+S.hp+"/"+MAXHP+"<br>"+IC("clock")+"Tempo total: <b>"+fmt(S.t)+"</b> · "+IC("flag")+"Melhor: "+fmt(bestOf(S.seed))+'</p>'+weak().html+'<button class="btn stamp" id="again">'+IC("folder")+"Escolher outro caso</button></div>";
   }
   g.innerHTML=h;
   g.querySelectorAll(".hs").forEach(b=>b.onclick=()=>hsClick(+b.dataset.k));
@@ -277,7 +287,7 @@ function puzzleHTML(P,i,modal){
 function renderPuzzle(box,i,modal){
   /* preserva o que foi digitado quando render() roda por dica/erro no mesmo problema */
   const key=S.seed+":"+i,keep=($("ans")&&qk===key)?$("ans").value:"";
-  box.innerHTML=puzzleHTML(SEEDS[S.seed].casos[i],i,modal);
+  box.innerHTML=puzzleHTML(caseAt(i),i,modal);
   if(!modal&&enter){const c=box.firstElementChild;if(c)c.classList.add("enter");enter=false}
   box.querySelectorAll(".opt").forEach(x=>x.onclick=()=>{S.sel=+x.dataset.k;sfx("key");save();render();const c=$("chk");if(c)c.focus()});
   const a=$("ans");
@@ -290,9 +300,20 @@ function renderPuzzle(box,i,modal){
   if($("nx"))$("nx").onclick=next;
 }
 
+/* ---- resumo final: conceitos com mais erros e dicas ---- */
+function weak(){
+  const c={};
+  for(const k in S.hs){const e=S.hs[k],P=SEEDS[S.seed].casos[k];if(!P||!(e.w||e.h))continue;
+    const n=FL[P.k].k,x=c[n]||(c[n]={w:0,h:0});x.w+=e.w;x.h+=e.h}
+  const l=Object.keys(c).sort((a,b)=>(c[b].w*2+c[b].h)-(c[a].w*2+c[a].h)).slice(0,3);
+  const pl=(n,u)=>n+" "+u+(n>1?"s":"");
+  return {txt:l.length?"Revise: "+l.map(n=>n+" ("+[c[n].w&&pl(c[n].w,"erro"),c[n].h&&pl(c[n].h,"dica")].filter(Boolean).join(", ")+")").join(" · ")+".":"Sem erros nem dicas: domínio completo.",
+    html:'<p class="weak">'+IC(l.length?"bulb":"check")+(l.length?"<b>Revise:</b> "+l.map(n=>n+' <span class="wn">('+[c[n].w&&pl(c[n].w,"erro"),c[n].h&&pl(c[n].h,"dica")].filter(Boolean).join(", ")+")</span>").join(" · "):"Sem erros nem dicas: domínio completo.")+"</p>"};
+}
+
 /* ---- dossiê ---- */
 function fillFC(i){
-  const P=SEEDS[S.seed].casos[i],f=FL[P.k],D=scn(),H=D&&D.hotspots.find(x=>x.caso===i);
+  const P=caseAt(i),f=FL[P.k],D=scn(),H=D&&D.hotspots.find(x=>x.caso===i);
   $("fcb").innerHTML="<h3>"+IC("note")+"Dossiê · Folha de anotações</h3>"+
     (H&&H.pista?'<p class="clue"><span class="lb">Achado na cena · '+H.nome+"</span>"+H.pista+"</p>":"")+
     '<p class="concept"><span class="lb">Conceito-chave</span>'+f.k+"</p>"+
@@ -328,7 +349,7 @@ function render(){
     qk="";$("pzb").innerHTML="";
     g.innerHTML='<h2>'+IC("folder")+'Escolha a investigação</h2><p class="story">Cada caso tem 10 pistas. O cronômetro começa ao abrir o arquivo.</p><div class="opts">'+SEEDS.map((s,k)=>'<button class="btn seedc" data-k="'+k+'"><b>'+s.ic+" "+s.nome+"</b><br><small>"+s.intro+" · "+(hasScene(k)?IC("search")+"Point and click":"Modo linear")+(bestOf(k)!=null?" · "+IC("flag")+"Melhor tempo: "+fmt(bestOf(k)):"")+"</small></button>").join("")+"</div>";
     g.querySelectorAll(".seedc").forEach(b=>b.onclick=()=>{
-      S=Object.assign(fresh(),{snd:S.snd,seed:+b.dataset.k});
+      S=Object.assign(fresh(),{snd:S.snd,seed:+b.dataset.k,rs:newRs()});
       const Dn=sceneAt(S.seed);if(Dn)S.room=Dn.salas[0].id;else S.open=0;
       tk=Date.now();dlgSeed=null;lastHS=null;save();render();
     });
@@ -342,7 +363,7 @@ function render(){
   if(S.fin){
     qk="";$("pzb").innerHTML="";
     if(D){buildScene(true);paintScene();return}
-    g.innerHTML='<div class="fim"><h2>'+IC("trophy")+'Caso resolvido</h2><div class="carimbo v">Arquivado</div><p><b>'+sd.nome+"</b><br>"+IC("medal")+"Pontuação: <b>"+S.score+"</b> · "+IC("heart")+"Vida: "+S.hp+"/"+MAXHP+"<br>"+IC("clock")+"Tempo total: <b>"+fmt(S.t)+"</b> · "+IC("flag")+"Melhor: "+fmt(bestOf(S.seed))+'</p><button class="btn stamp" id="again">'+IC("folder")+"Escolher outro caso</button></div>";
+    g.innerHTML='<div class="fim"><h2>'+IC("trophy")+'Caso resolvido</h2><div class="carimbo v">Arquivado</div><p><b>'+sd.nome+"</b><br>"+IC("medal")+"Pontuação: <b>"+S.score+"</b> · "+IC("heart")+"Vida: "+S.hp+"/"+MAXHP+"<br>"+IC("clock")+"Tempo total: <b>"+fmt(S.t)+"</b> · "+IC("flag")+"Melhor: "+fmt(bestOf(S.seed))+'</p>'+weak().html+'<button class="btn stamp" id="again">'+IC("folder")+"Escolher outro caso</button></div>";
     $("again").onclick=reset;return;
   }
   if(D)ensureScene();
@@ -397,7 +418,7 @@ function finish(){
   S.fin=true;S.open=null;S.fc=null;S.sv=false;
   const id=SID[S.seed];if(best[id]==null||S.t<best[id])best[id]=S.t;
   save();render();sfx("win");
-  $("ovp").textContent=SEEDS[S.seed].nome+": "+S.score+" pontos, "+S.hp+" HP, tempo total "+fmt(S.t)+".";
+  $("ovp").textContent=SEEDS[S.seed].nome+": "+S.score+" pontos, "+S.hp+" HP, tempo total "+fmt(S.t)+". "+weak().txt;
   openM("ov","ovb");
 }
 function next(){
