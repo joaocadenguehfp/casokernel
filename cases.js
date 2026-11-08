@@ -28,6 +28,10 @@ const sub=["₀","₁","₂","₃"];
 const lc=(c,v)=>{let s="";c.forEach((k,i)=>{if(!k)return;const a=Math.abs(k),t=(a===1?"":a)+v[i];s+=s?(k<0?"-":"+")+t:(k<0?"-":"")+t});return s||"0"};
 /* polinômio em $...$: poly([2,3,-1,1]) = "2+3x-x^2+x^3" */
 const poly=c=>{let s="";c.forEach((k,i)=>{if(!k)return;const a=Math.abs(k),t=(a===1&&i>0?"":a)+(i===0?"":i===1?"x":"x^"+i);s+=s?(k<0?"-":"+")+t:(k<0?"-":"")+t});return s||"0"};
+/* polinômio característico 2×2 em $...$: λ^2-7λ+10 */
+const charStr=(tr,dt)=>"λ^2"+(tr?(tr>0?"-":"+")+(Math.abs(tr)===1?"":Math.abs(tr))+"λ":"")+(dt?(dt>0?"+":"-")+Math.abs(dt):"");
+const lfac=r=>"(λ"+(r>0?"-"+r:r<0?"+"+(-r):"")+")";
+const dec=v=>String(v).replace(".",",");
 const polyT=c=>poly(c).replace(/-/g,"−").replace(/\^(\d)/g,(_,d)=>"⁰¹²³⁴⁵⁶⁷⁸⁹"[d]);
 const FL={
 lin:{k:"Propriedades da linearidade",p:"Teste primeiro T(0)=0. Depois verifique T(x+y)=T(x)+T(y) e T(αx)=αT(x). Constantes, quadrados, produtos e exponenciais reprovam."},
@@ -38,7 +42,16 @@ prod:{k:"Álgebra de matrizes",p:"AB = linha de A × coluna de B (colunas de A =
 comp:{k:"Composição ST",p:"ST(x)=S(T(x)): aplique T primeiro. A matriz de ST é o produto A·B, na mesma ordem."},
 inv:{k:"Condição de inversibilidade",p:"T é inversível ⇔ injetora ⇔ N(T)={0}. Para achar T⁻¹, resolva y=T(x) para x em função de y."},
 row:{k:"Espaço-linha e dependência linear",p:"Escalone: Gauss-Jordan não altera o espaço-linha. Posto = linhas não nulas; se for menor que o número de vetores, eles são LD."},
-idop:{k:"Operadores D, integral e deslocamento",p:"DT=I não implica TD=I. Aplique os operadores a um polinômio genérico e compare coeficientes."}
+idop:{k:"Operadores D, integral e deslocamento",p:"DT=I não implica TD=I. Aplique os operadores a um polinômio genérico e compare coeficientes."},
+eig:{k:"Autovalores e autovetores",p:"Av=λv com v≠0. Para testar um candidato, calcule Av e veja se é múltiplo de v: o fator é o autovalor λ."},
+charp:{k:"Polinômio característico",p:"Resolva det(A−λI)=0. Em 2×2: λ² − (traço)λ + det = 0. Em matriz triangular, os autovalores estão na diagonal."},
+base:{k:"Mudança de base",p:"As coordenadas de v na base B={b₁,b₂} resolvem c₁b₁+c₂b₂=v. A matriz de mudança tem os vetores de B nas colunas."},
+herm:{k:"Transformações hermitianas",p:"Hermitiana: A igual à conjugada transposta. Autovalores sempre reais e autovetores ortogonais; a simétrica real é o caso particular."},
+orto:{k:"Matrizes ortogonais",p:"QᵀQ=I: colunas ortonormais, inversa igual à transposta, comprimentos e ângulos preservados."},
+quad:{k:"Formas quadráticas",p:"ax²+bxy+cy² tem matriz simétrica com a e c na diagonal e b/2 fora dela. Nos eixos dos autovetores, vira λ₁x'²+λ₂y'²."},
+conic:{k:"Seções cônicas",p:"Diagonalize a parte quadrática. Autovalores de mesmo sinal: elipse. Sinais opostos: hipérbole. Um autovalor nulo: parábola."},
+quadric:{k:"Superfícies quádricas",p:"Na forma diagonal igualada a 1, conte os sinais: (+,+,+) elipsoide; (+,+,−) hiperboloide de uma folha; (+,−,−) de duas folhas."},
+mmq:{k:"Método dos mínimos quadrados",p:"Resolva as equações normais AᵀA·c = Aᵀy. Para a reta y=c₀+c₁x com os x somando zero: c₀ é a média dos y e c₁ = Σxy/Σx²."}
 };
 
 const SEEDS=[
@@ -200,5 +213,67 @@ const SEEDS=[
  type:"num",s:"Última sala. O suspeito sempre desfazia o que fazia, mas deixava marcas em cada coeficiente.",
  q:"Para $p=c_0+c_1x+c_2x^2$, $S(p)=c_1+c_2x$ e $T(p)=c_0x+c_1x^2+c_2x^3$. Com $p=1+2x+3x^2$, dê $(c_0,c_1,c_2)$ de $(TS)^2(p)$.",a:[0,2,3],k:"idop",
  h:["Calcule $TS(p)$ primeiro: $S(p)=2+3x$.","$TS(p)=2x+3x^2$. Aplique $TS$ de novo."],e:"TS(p)=2x+3x² e (TS)²(p)=TS(2x+3x²)=2x+3x², logo (0,2,3)."}
+]},
+{id:"observatorio",nome:"O Observatório Quadrático",ic:"🔭",intro:"Autovalores, mudança de base, formas quadráticas, cônicas, quádricas e mínimos quadrados.",casos:[
+{d:"f",t:"A luneta apontada",type:"num",
+ g:R=>{const a=R.int(1,6),b=R.nz(-4,4),A=[[a,b],[b,a]],l=a+b;
+   return {p:{A},a:[l],q:"$A=mat("+a+","+b+";"+b+","+a+")$ e $v=(1,1)$ é autovetor de $A$. Qual é o autovalor associado?",
+    h:["Calcule $Av$.","$Av="+tup([l,l])+"$, um múltiplo de $v$."],e:"Av=("+neg(a)+"+("+neg(b)+"), "+neg(b)+"+("+neg(a)+"))="+ttup([l,l])+"="+neg(l)+"·v, logo λ="+neg(l)+"."}},
+ q:"$A=mat(2,1;1,2)$ e $v=(1,1)$ é autovetor de $A$. Qual é o autovalor associado?",a:[3],k:"eig",
+ h:["Calcule $Av$.","$Av=(3,3)$, um múltiplo de $v$."],e:"Av=(2+1, 1+2)=(3,3)=3·v, logo λ=3."},
+{d:"f",t:"A escada triangular",type:"num",
+ g:R=>{let d1,d2;do{d1=R.int(-6,8);d2=R.int(-6,8)}while(d1===d2);const u=R.nz(-6,6),A=[[d1,u],[0,d2]],m=Math.max(d1,d2);
+   return {p:{A},a:[m],q:"Qual é o maior autovalor de $mat("+d1+","+u+";0,"+d2+")$?",
+    h:["Matriz triangular: os autovalores estão na diagonal.","A diagonal tem $"+d1+"$ e $"+d2+"$."],e:"det(A−λI)=("+neg(d1)+"−λ)("+neg(d2)+"−λ): autovalores "+neg(d1)+" e "+neg(d2)+"; o maior é "+neg(m)+"."}},
+ q:"Qual é o maior autovalor de $mat(3,5;0,-2)$?",a:[3],k:"charp",
+ h:["Matriz triangular: os autovalores estão na diagonal.","A diagonal tem $3$ e $-2$."],e:"det(A−λI)=(3−λ)(−2−λ): autovalores 3 e −2; o maior é 3."},
+{d:"m",t:"O relógio dos astros",type:"num",
+ g:R=>{let r,s,a,d,c,b;do{r=R.int(-3,6);s=R.int(-3,7);a=R.int(-3,6);d=r+s-a;b=R.pick([1,-1]);c=(a*d-r*s)/b}while(r>=s||c===0||Math.abs(c)>30);
+   const A=[[a,b],[c,d]];
+   return {p:{A},a:[r,s],q:"Quais são os autovalores de $mat("+a+","+b+";"+c+","+d+")$, em ordem crescente?",
+    h:["$det(A-λI)="+charStr(r+s,r*s)+"$.","Fatore: $"+lfac(r)+lfac(s)+"$."],e:"tr A = "+neg(r+s)+" e det A = "+neg(r*s)+": as raízes de λ² − (tr A)λ + det A são "+neg(r)+" e "+neg(s)+"."}},
+ q:"Quais são os autovalores de $mat(4,1;2,3)$, em ordem crescente?",a:[2,5],k:"charp",
+ h:["$det(A-λI)=λ^2-7λ+10$.","Fatore: $(λ-2)(λ-5)$."],e:"tr A = 7 e det A = 10: λ²−7λ+10=(λ−2)(λ−5), autovalores 2 e 5."},
+{d:"m",t:"O mapa girado",type:"num",
+ g:R=>{const c=[R.nz(-4,6),R.nz(-4,6)],v=[c[0]+c[1],c[0]-c[1]];
+   return {p:{v},a:c,q:"Quais são as coordenadas de $v="+tup(v)+"$ na base $B={(1,1),(1,-1)}$?",
+    h:["Resolva $c_1(1,1)+c_2(1,-1)="+tup(v)+"$.","$c_1+c_2="+v[0]+"$ e $c_1-c_2="+v[1]+"$."],e:"c₁="+neg(c[0])+" e c₂="+neg(c[1])+": "+neg(c[0])+"(1,1)+("+neg(c[1])+")(1,−1)="+ttup(v)+"."}},
+ q:"Quais são as coordenadas de $v=(5,1)$ na base $B={(1,1),(1,-1)}$?",a:[3,2],k:"base",
+ h:["Resolva $c_1(1,1)+c_2(1,-1)=(5,1)$.","$c_1+c_2=5$ e $c_1-c_2=1$."],e:"c₁=3 e c₂=2: 3(1,1)+2(1,−1)=(5,1)."},
+{d:"m",t:"O prisma hermitiano",type:"num",
+ g:R=>{const a=R.int(1,6),b=R.int(1,4),bi=(b===1?"":b)+"i";
+   return {p:{a,b},a:[a-b,a+b],q:"A matriz $H=mat("+a+","+bi+";-"+bi+","+a+")$ é hermitiana. Quais são seus autovalores, em ordem crescente?",
+    h:["$det(H-λI)=("+a+"-λ)^2-("+bi+")(-"+bi+")=("+a+"-λ)^2-"+b*b+"$.","Autovalores de matriz hermitiana são sempre reais."],
+    e:"("+a+"−λ)²="+b*b+" ⇒ λ="+neg(a-b)+" ou λ="+(a+b)+". Reais, como em toda hermitiana."}},
+ q:"A matriz $H=mat(2,i;-i,2)$ é hermitiana. Quais são seus autovalores, em ordem crescente?",a:[1,3],k:"herm",
+ h:["$det(H-λI)=(2-λ)^2-(i)(-i)=(2-λ)^2-1$.","Autovalores de matriz hermitiana são sempre reais."],e:"(2−λ)²=1 ⇒ λ=1 ou λ=3. Reais, como em toda hermitiana."},
+{d:"m",t:"O globo ortogonal",type:"num",
+ g:R=>{const v=[R.nz(-6,7),R.nz(-6,7)],x=[v[1],-v[0]];
+   return {p:{v},a:x,q:"$Q=mat(0,-1;1,0)$ é ortogonal. Calcule $Q^{-1}"+tup(v)+"$.",e:"Q⁻¹"+ttup(v)+"=Qᵀ"+ttup(v)+"="+ttup(x)+"."}},
+ q:"$Q=mat(0,-1;1,0)$ é ortogonal. Calcule $Q^{-1}(1,2)$.",a:[2,-1],k:"orto",
+ h:["Para matriz ortogonal, $Q^{-1}=Q^T$.","$Q^T=mat(0,1;-1,0)$."],e:"Q⁻¹(1,2)=Qᵀ(1,2)=(2,−1)."},
+{d:"d",t:"O caderno do astrônomo",type:"num",
+ g:R=>{const a=R.int(2,6),h=R.nz(-3,3),b=2*h,l=[a-Math.abs(h),a+Math.abs(h)];
+   return {p:{f:[a,b,a]},a:l,q:"Quais são os autovalores da matriz simétrica da forma quadrática $q(x,y)="+lc([a,b,a],["x^2","xy","y^2"])+"$, em ordem crescente?",
+    h:["A matriz é $mat("+a+","+h+";"+h+","+a+")$: o termo misto se divide ao meio.","$"+charStr(2*a,a*a-h*h)+"=0$."],
+    e:"$A=mat("+a+","+h+";"+h+","+a+")$: λ="+neg(l[0])+" e λ="+neg(l[1])+". Nos eixos principais, q="+(l[0]===1?"":neg(l[0]))+"x'²+"+(l[1]===1?"":l[1])+"y'²."}},
+ q:"Quais são os autovalores da matriz simétrica da forma quadrática $q(x,y)=3x^2+4xy+3y^2$, em ordem crescente?",a:[1,5],k:"quad",
+ h:["A matriz é $mat(3,2;2,3)$: o termo misto se divide ao meio.","$λ^2-6λ+5=0$."],e:"$A=mat(3,2;2,3)$, traço 6 e determinante 5: λ=1 e λ=5. Nos eixos principais, q=x'²+5y'²."},
+{d:"d",t:"A órbita inclinada",type:"choice",q:"Que cônica é $3x^2+4xy+3y^2=5$?",
+ o:["Elipse","Hipérbole","Parábola","Par de retas"],a:0,k:"conic",
+ h:["Nos eixos principais, a equação vira $x'^2+5y'^2=5$.","Os dois autovalores são positivos, e o lado direito também."],
+ e:"x'²+5y'²=5, ou x'²/5+y'²=1: uma elipse inclinada, com semieixos √5 e 1."},
+{d:"d",t:"A maquete de retas",type:"choice",q:"Que superfície é $x^2+y^2-z^2=1$?",
+ o:["Elipsoide","Hiperboloide de uma folha","Hiperboloide de duas folhas","Cone"],a:1,k:"quadric",
+ h:["Conte os sinais: dois positivos e um negativo.","Os cortes $z=c$ são círculos $x^2+y^2=1+c^2$, nunca vazios."],
+ e:"Sinais (+,+,−) com lado direito positivo: todo corte horizontal é um círculo, e a superfície é conexa. Hiperboloide de uma folha."},
+{d:"b",t:"O astrônomo suspeito",type:"num",s:"Três observações, uma reta e um mentiroso. O suspeito ajustou os dados para sumir do céu; os mínimos quadrados o trazem de volta.",
+ g:R=>{let y;do{y=[R.int(0,8),R.int(0,8),R.int(0,8)]}while((y[0]+y[1]+y[2])%3||y[0]+y[2]===2*y[1]);
+   const pts=[[-1,y[0]],[0,y[1]],[1,y[2]]],S=y[0]+y[1]+y[2],D=y[2]-y[0],c=[S/3,D/2];
+   return {p:{pts},a:c,q:"Ajuste a reta $y=c_0+c_1x$ por mínimos quadrados aos pontos "+pts.map(q=>"$"+tup(q)+"$").join(", ").replace(/, ([^,]*)$/," e $1")+". Dê $(c_0,c_1)$.",
+    e:"$A^{T}A=mat(3,0;0,2)$ e $A^{T}y="+tup([S,D])+"$: c₀="+neg(S)+"/3="+neg(c[0])+" e c₁="+neg(D)+"/2="+dec(neg(c[1]))+"."}},
+ q:"Ajuste a reta $y=c_0+c_1x$ por mínimos quadrados aos pontos $(-1,1)$, $(0,1)$ e $(1,4)$. Dê $(c_0,c_1)$.",a:[2,1.5],k:"mmq",
+ h:["Monte $A^{T}A·c=A^{T}y$ com $A=mat(1,-1;1,0;1,1)$.","Como $Σx=0$: $c_0$ é a média dos $y$ e $c_1=Σxy/Σx^2$."],
+ e:"$A^{T}A=mat(3,0;0,2)$ e $A^{T}y=(6,3)$: c₀=2 e c₁=3/2=1,5. A reta é y=2+1,5x."}
 ]}
 ];

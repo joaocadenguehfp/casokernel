@@ -140,6 +140,21 @@ const V={
     }
     return optIdx(P,"São LI")},
   "dependencia:9":P=>{const TS=p=>pad(shiftUp(shiftDown(p)),3);return TS(TS(P.p?P.p.c:[1,2,3]))},
+  /* ===== O Observatório Quadrático ===== */
+  "observatorio:0":P=>{const A=P.p?P.p.A:[[2,1],[1,2]],v=[1,1],w=mv(A,v),l=w[0]/v[0];
+    return w.every((x,k)=>Math.abs(x-l*v[k])<1e-9)?[l]:[NaN]},
+  "observatorio:1":P=>{const e=eig2(P.p?P.p.A:[[3,5],[0,-2]]);return [e[1]]},
+  "observatorio:2":P=>eig2(P.p?P.p.A:[[4,1],[2,3]]),
+  "observatorio:3":P=>solve(T([[1,1],[1,-1]]),P.p?P.p.v:[5,1]),
+  "observatorio:4":P=>{const a=P.p?P.p.a:2,b=P.p?P.p.b:1;return eigHerm(a,0,b,a)},
+  "observatorio:5":P=>{const Q=[[0,-1],[1,0]];return same(mul(T(Q),Q),eye(2))?mv(T(Q),P.p?P.p.v:[1,2]):[NaN]},
+  "observatorio:6":P=>{const [a,b,c]=P.p?P.p.f:[3,4,3];return eig2([[a,b/2],[b/2,c]])},
+  "observatorio:7":P=>{const e=eig2([[3,2],[2,3]]),r=5,pos=e.filter(x=>x>1e-9).length,ng=e.filter(x=>x<-1e-9).length;
+    return optIdx(P,pos===2&&r>0?"Elipse":pos===1&&ng===1?"Hipérbole":pos+ng===1?"Parábola":"Par de retas")},
+  "observatorio:8":P=>{const d=[1,1,-1],r=1,pos=d.filter(x=>x>0).length;
+    return optIdx(P,r===0?"Cone":pos===3?"Elipsoide":pos===2?"Hiperboloide de uma folha":"Hiperboloide de duas folhas")},
+  "observatorio:9":P=>{const pts=P.p?P.p.pts:[[-1,1],[0,1],[1,4]],A=pts.map(q=>[1,q[0]]),y=pts.map(q=>q[1]),At=T(A);
+    return solve(mul(At,A),mv(At,y))},
 };
 
 /* ---------- casos ---------- */

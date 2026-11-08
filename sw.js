@@ -2,7 +2,7 @@
    Estratégia "rede primeiro": online, sempre pega a versão nova (sem cache velho
    durante o desenvolvimento); sem rede, usa a cópia salva. Troque VERSAO ao
    mudar a lista de arquivos. */
-const VERSAO="caso-kernel-v5-1";
+const VERSAO="caso-kernel-v5-2";
 const ARQUIVOS=["./","index.html","style.css","cases.js","scenes.js","script.js",
   "fonts/cinzel-latin.woff2","fonts/rajdhani-500-latin.woff2","fonts/rajdhani-600-latin.woff2","fonts/rajdhani-700-latin.woff2"];
 

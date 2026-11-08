@@ -568,6 +568,192 @@ const sceneDependencia=()=>({
   }
 });
 
+/* =================== O OBSERVATÓRIO QUADRÁTICO: cúpula e sala de mapas =================== */
+const oStars=(x0,y0,w,h,n,seed)=>{let s="",r=seed;const nx=()=>(r=(r*9301+49297)%233280)/233280;
+  for(let i=0;i<n;i++)s+='<circle cx="'+(x0+nx()*w).toFixed(0)+'" cy="'+(y0+nx()*h).toFixed(0)+'" r="'+(.8+nx()*1.6).toFixed(1)+'" fill="#cfeeff" opacity="'+(.35+nx()*.6).toFixed(2)+'"/>';return s};
+const oDefs=()=>baseDefs("o")+`
+ <linearGradient id="oSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#050b16"/><stop offset="1" stop-color="#12284a"/></linearGradient>
+ <linearGradient id="oDome" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0d1622"/><stop offset="1" stop-color="#16212d"/></linearGradient>
+ <linearGradient id="oFloor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#121a24"/><stop offset="1" stop-color="#05080c"/></linearGradient>
+ <linearGradient id="oTube" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2a3a48"/><stop offset=".5" stop-color="#4a5d6e"/><stop offset="1" stop-color="#1a2530"/></linearGradient>
+ <radialGradient id="oSun"><stop offset="0" stop-color="#fff3c4"/><stop offset=".5" stop-color="#e5c158"/><stop offset="1" stop-color="#8a6d1c"/></radialGradient>
+ <radialGradient id="oGlobe" cx=".35" cy=".35"><stop offset="0" stop-color="#2a4a6a"/><stop offset="1" stop-color="#0a1624"/></radialGradient>
+ <clipPath id="oSlit"><rect x="700" y="63" width="200" height="380"/></clipPath>`;
+
+const salaCupula=()=>SVG0+`<defs>${oDefs()}</defs>
+<rect width="1600" height="640" fill="#080d14"/>
+<!-- cúpula com nervuras e fenda -->
+<path d="M46 640V420Q46 63 800 63Q1554 63 1554 420V640Z" fill="url(#oDome)"/>
+<g fill="none" stroke="#d4af37" stroke-opacity=".18" stroke-width="2">${[-3,-2,-1,1,2,3].map(i=>'<path d="M800 63Q'+(800+i*230)+' 200 '+(800+i*250)+' 640"/>').join("")}<path d="M60 330Q800 230 1540 330"/><path d="M50 470Q800 400 1550 470"/></g>
+<g clip-path="url(#oSlit)"><rect x="700" y="63" width="200" height="380" fill="url(#oSky)"/>${oStars(700,63,200,380,40,11)}
+ <circle cx="860" cy="130" r="18" fill="#e9fbff" opacity=".9"/></g>
+<path d="M700 63V443M900 63V443" stroke="url(#oGold)" stroke-width="5"/>
+${frieze("o",640)}
+<rect y="640" width="1600" height="260" fill="url(#oFloor)"/>${pFloor(640,"#d4af37",".06")}
+<ellipse cx="800" cy="700" rx="420" ry="46" fill="none" stroke="#d4af37" stroke-opacity=".3" stroke-width="3"/>
+
+<!-- LUNETA (fase 0): aponta na direção (1,1) -->
+<path d="M760 700L790 600H810L840 700Z" fill="#141e28" stroke="url(#oGold)" stroke-width="2"/>
+<circle cx="800" cy="580" r="26" fill="url(#oGold)"/>
+<g transform="rotate(45 800 560)"><rect x="770" y="300" width="60" height="300" rx="8" fill="url(#oTube)" stroke="url(#oGold)" stroke-width="3"/>
+ <rect x="762" y="296" width="76" height="22" rx="4" fill="url(#oGold)"/><rect x="782" y="590" width="36" height="40" fill="#1a2530" stroke="#d4af37" stroke-opacity=".6"/>
+ <rect x="770" y="420" width="60" height="10" fill="url(#oGold)"/></g>
+<g data-on="0" filter="url(#oGlow)"><path d="M1012 348L1160 200" stroke="#9be7ff" stroke-width="3" stroke-dasharray="12 8"/>
+ <circle cx="1180" cy="180" r="18" fill="none" stroke="#9be7ff" stroke-width="2.5"/><path d="M1180 152V208M1152 180H1208" stroke="#9be7ff" stroke-width="2"/>
+ <text x="1214" y="232" font-family="Rajdhani,sans-serif" font-size="24" font-weight="700" fill="#9be7ff">Av = λv</text></g>
+
+<!-- RELÓGIO ASTRONÔMICO (fase 2) -->
+<circle cx="260" cy="310" r="130" fill="#0b1219" stroke="url(#oGold)" stroke-width="6"/>
+<circle cx="260" cy="310" r="104" fill="none" stroke="#d4af37" stroke-opacity=".5" stroke-width="2"/><circle cx="260" cy="310" r="66" fill="none" stroke="url(#oGold)" stroke-width="3"/>
+<g stroke="#d4af37" stroke-opacity=".7" stroke-width="2">${[...Array(24).keys()].map(i=>{const a=i/24*Math.PI*2;return '<line x1="'+(260+Math.cos(a)*108).toFixed(1)+'" y1="'+(310+Math.sin(a)*108).toFixed(1)+'" x2="'+(260+Math.cos(a)*(i%2?118:124)).toFixed(1)+'" y2="'+(310+Math.sin(a)*(i%2?118:124)).toFixed(1)+'"/>'}).join("")}</g>
+<path d="M260 310L260 214M260 310L330 352" stroke="url(#oGold)" stroke-width="4" stroke-linecap="round"/><circle cx="260" cy="310" r="10" fill="url(#oSun)"/>
+<g data-off="2" fill="#4a5d6e"><circle cx="198" cy="262" r="9"/><circle cx="330" cy="280" r="9"/></g>
+<g data-on="2" filter="url(#oGlow)"><circle cx="198" cy="262" r="10" fill="#9be7ff"/><circle cx="330" cy="280" r="10" fill="#9be7ff"/>
+ <text x="260" y="476" text-anchor="middle" font-family="Rajdhani,sans-serif" font-size="22" font-weight="700" fill="#9be7ff">det(A − λI) = 0</text></g>
+
+<!-- PRISMA (fase 4) -->
+<path d="M1110 640L1150 560H1250L1290 640" fill="none" stroke="#3a2416" stroke-width="8"/>
+<rect x="1120" y="552" width="160" height="14" fill="url(#oGold)"/>
+<path d="M1000 520L1170 520" stroke="#e8e4d8" stroke-width="4" opacity=".7"/>
+<polygon points="1200,460 1240,548 1160,548" fill="#cfeeff" fill-opacity=".18" stroke="#9be7ff" stroke-width="2.5"/>
+<g data-on="4" filter="url(#oGlow)" stroke-width="4" stroke-linecap="round">
+ <path d="M1222 512L1330 470" stroke="#ff5a4d"/><path d="M1224 518L1335 494" stroke="#ff9a3a"/><path d="M1226 524L1338 518" stroke="#e5c158"/>
+ <path d="M1226 530L1336 542" stroke="#3fd0a0"/><path d="M1224 536L1330 566" stroke="#4fc3f7"/>
+ <text x="1250" y="448" font-family="Rajdhani,sans-serif" font-size="22" font-weight="700" fill="#9be7ff" stroke="none">λ ∈ ℝ</text></g>
+
+<!-- PLANETÁRIO (fase 7) -->
+<path d="M260 780L290 700H350L380 780Z" fill="#141e28" stroke="url(#oGold)" stroke-width="2"/><rect x="314" y="620" width="12" height="82" fill="url(#oGold)"/>
+<circle cx="320" cy="610" r="24" fill="url(#oSun)"/>
+<g data-off="7" fill="none" stroke="#d4af37" stroke-opacity=".35" stroke-width="2"><ellipse cx="320" cy="610" rx="150" ry="40"/><ellipse cx="320" cy="610" rx="96" ry="26"/></g>
+<g data-off="7"><circle cx="170" cy="610" r="10" fill="#4a5d6e"/><circle cx="410" cy="630" r="7" fill="#4a5d6e"/></g>
+<g data-on="7" filter="url(#oGlow)"><ellipse cx="320" cy="610" rx="150" ry="58" transform="rotate(-20 320 610)" fill="none" stroke="#9be7ff" stroke-width="3"/>
+ <path d="M178 662L462 558M282 506L358 714" stroke="#9be7ff" stroke-opacity=".5" stroke-dasharray="6 6"/>
+ <circle cx="180" cy="660" r="10" fill="#9be7ff"/><text x="320" y="530" text-anchor="middle" font-family="Rajdhani,sans-serif" font-size="20" font-weight="700" fill="#9be7ff">x'² + 5y'² = 5</text></g>
+${vig("o")}
+</svg>`;
+
+const salaMapas=()=>SVG0+`<defs>${oDefs()}
+ <linearGradient id="oWood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a1a22"/><stop offset="1" stop-color="#0e0d12"/></linearGradient>
+ <linearGradient id="oChart" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0f2236"/><stop offset="1" stop-color="#081422"/></linearGradient></defs>
+<rect width="1600" height="620" fill="url(#oWood)"/>
+${frieze("o",620)}
+<rect x="46" y="500" width="1508" height="120" fill="#151016"/><path d="M46 500H1554" stroke="url(#oGold)" stroke-width="2"/>
+<g stroke="#d4af37" stroke-opacity=".15">${[...Array(15).keys()].map(i=>'<line x1="'+(100+i*100)+'" y1="510" x2="'+(100+i*100)+'" y2="610"/>').join("")}</g>
+<rect y="620" width="1600" height="280" fill="url(#oFloor)"/>${pFloor(620,"#d4af37",".06")}
+
+<!-- LOUSA (fase 1) -->
+<rect x="90" y="130" width="350" height="270" rx="4" fill="#6f5614"/><rect x="100" y="140" width="330" height="250" fill="#0c1a1f"/>
+<rect x="100" y="390" width="330" height="10" fill="url(#oGold)"/>
+<g font-family="Rajdhani,sans-serif" font-size="34" fill="#cfeeff" fill-opacity=".55"><text x="130" y="200">A =</text>
+ <path d="M200 160V300M370 160V300" stroke="#cfeeff" stroke-opacity=".55" stroke-width="3"/><text x="214" y="214">a</text><text x="306" y="214">b</text><text x="216" y="282">0</text><text x="306" y="282">d</text></g>
+<text x="130" y="360" font-family="Rajdhani,sans-serif" font-size="26" fill="#cfeeff" fill-opacity=".45">λ = ?</text>
+<g data-on="1" filter="url(#oGlow)" fill="none" stroke="#9be7ff" stroke-width="3"><circle cx="224" cy="203" r="26"/><circle cx="315" cy="271" r="26"/><path d="M244 222L295 252"/></g>
+
+<!-- MAPA DE CONSTELAÇÕES (fase 3) -->
+<rect x="500" y="110" width="360" height="220" fill="url(#oChart)" stroke="url(#oGold)" stroke-width="4"/>
+<g stroke="#d4af37" stroke-opacity=".2">${[0,1,2,3,4,5].map(i=>'<line x1="'+(500+i*72)+'" y1="110" x2="'+(500+i*72)+'" y2="330"/>').join("")+[0,1,2,3].map(i=>'<line x1="500" y1="'+(110+i*73)+'" x2="860" y2="'+(110+i*73)+'"/>').join("")}</g>
+${oStars(510,120,340,200,26,5)}
+<g stroke="#cfeeff" stroke-opacity=".5" fill="#cfeeff"><path d="M560 280L620 230L700 250L760 180L820 200" fill="none"/>${[[560,280],[620,230],[700,250],[760,180],[820,200]].map(p=>'<circle cx="'+p[0]+'" cy="'+p[1]+'" r="3.5"/>').join("")}</g>
+<g data-on="3" filter="url(#oGlow)"><path d="M590 300L770 120M590 140L770 300" stroke="#9be7ff" stroke-width="2.5"/>
+ <g font-family="Rajdhani,sans-serif" font-size="20" font-weight="700" fill="#9be7ff"><text x="776" y="132">b₁</text><text x="776" y="312">b₂</text></g></g>
+
+<!-- SUSPEITO atrás do cavalete (fase 9) -->
+<g data-on="9">${suspect("o",825,470,.72)}</g>
+<!-- CAVALETE COM O GRÁFICO (fase 9) -->
+<path d="M760 780L800 440M890 780L850 440M825 440V790" stroke="#3a2416" stroke-width="8"/>
+<rect x="730" y="450" width="190" height="180" fill="#e8e4d8" opacity=".92"/>
+<path d="M750 610H906M760 620V466" stroke="#1a1218" stroke-width="2"/><path d="M760 610V466" stroke="#1a1218" stroke-width="2"/>
+<g fill="#1a1218">${[[790,560],[828,560],[866,500]].map(p=>'<circle cx="'+p[0]+'" cy="'+p[1]+'" r="6"/>').join("")}</g>
+<g data-off="9"><rect x="730" y="450" width="190" height="90" fill="#5a1220" opacity=".9"/><text x="825" y="505" text-anchor="middle" font-family="Cinzel,serif" font-size="34" fill="#e5c158" fill-opacity=".8">?</text></g>
+<g data-on="9"><path d="M766 584L900 494" stroke="#ff5a4d" stroke-width="4"/>${plaque("o",825,640)}</g>
+
+<!-- ESCRIVANINHA E CADERNO (fase 6) -->
+<ellipse cx="470" cy="770" rx="230" ry="14" fill="#000" opacity=".5"/>
+<rect x="260" y="560" width="420" height="18" fill="#2a1a10" stroke="url(#oGold)" stroke-width="2"/>
+<rect x="276" y="578" width="388" height="90" fill="#160d08" stroke="#d4af37" stroke-opacity=".35"/><rect x="280" y="668" width="16" height="96" fill="#160d08"/><rect x="644" y="668" width="16" height="96" fill="#160d08"/>
+<polygon points="372,556 470,548 470,512 380,518" fill="#e8e4d8"/><polygon points="568,556 470,548 470,512 560,518" fill="#d9d4c5"/>
+<g data-off="6" stroke="#1a1218" stroke-opacity=".4" stroke-width="2"><path d="M392 530l64-4M392 540l64-4M484 526l64 4M484 536l64 4"/></g>
+<g data-on="6" filter="url(#oGlow)"><path d="M392 530l64-4M392 540l64-4M484 526l64 4M484 536l64 4" stroke="#4fc3f7" stroke-width="2"/>
+ <text x="470" y="494" text-anchor="middle" font-family="Rajdhani,sans-serif" font-size="22" font-weight="700" fill="#9be7ff">λ₁x'² + λ₂y'²</text></g>
+<g><rect x="610" y="520" width="10" height="40" fill="#e8e4d8"/><ellipse cx="615" cy="514" rx="5" ry="9" fill="#ffd36b"/><ellipse cx="615" cy="520" rx="40" ry="30" fill="url(#oCu)" opacity=".7"/></g>
+
+<!-- GLOBO CELESTE (fase 5) -->
+<ellipse cx="1090" cy="700" rx="70" ry="12" fill="url(#oGold)"/><rect x="1084" y="560" width="12" height="140" fill="url(#oGold)"/>
+<circle cx="1090" cy="450" r="96" fill="url(#oGlobe)"/>${oStars(1010,370,160,160,18,23)}
+<g fill="none" stroke="#d4af37" stroke-opacity=".35"><ellipse cx="1090" cy="450" rx="96" ry="30"/><ellipse cx="1090" cy="450" rx="40" ry="96"/></g>
+<circle data-off="5" cx="1090" cy="450" r="110" fill="none" stroke="url(#oGold)" stroke-width="6"/>
+<g data-on="5"><ellipse cx="1090" cy="450" rx="110" ry="110" fill="none" stroke="url(#oGold)" stroke-width="6"/>
+ <ellipse cx="1090" cy="450" rx="110" ry="36" transform="rotate(-30 1090 450)" fill="none" stroke="#9be7ff" stroke-width="3" filter="url(#oGlow)"/>
+ <text x="1090" y="300" text-anchor="middle" font-family="Rajdhani,sans-serif" font-size="22" font-weight="700" fill="#9be7ff" filter="url(#oGlow)">QᵀQ = I</text></g>
+
+<!-- MAQUETE DO HIPERBOLOIDE (fase 8) -->
+<rect x="1290" y="620" width="140" height="100" fill="#141e28" stroke="url(#oGold)" stroke-width="3"/><rect x="1280" y="610" width="160" height="12" fill="url(#oGold)"/>
+<g data-off="8" stroke="#d4af37" stroke-opacity=".55" stroke-width="2">${[...Array(14).keys()].map(i=>{const a=i/14*Math.PI*2,b=a+1.9;return '<line x1="'+(1360+Math.cos(a)*70).toFixed(1)+'" y1="'+(340+Math.sin(a)*14).toFixed(1)+'" x2="'+(1360+Math.cos(b)*70).toFixed(1)+'" y2="'+(590+Math.sin(b)*14).toFixed(1)+'"/>'}).join("")}</g>
+<g data-on="8" filter="url(#oGlow)" stroke="#9be7ff" stroke-width="2">${[...Array(14).keys()].map(i=>{const a=i/14*Math.PI*2,b=a+1.9;return '<line x1="'+(1360+Math.cos(a)*70).toFixed(1)+'" y1="'+(340+Math.sin(a)*14).toFixed(1)+'" x2="'+(1360+Math.cos(b)*70).toFixed(1)+'" y2="'+(590+Math.sin(b)*14).toFixed(1)+'"/>'}).join("")}
+ <text x="1360" y="314" text-anchor="middle" font-family="Rajdhani,sans-serif" font-size="20" font-weight="700" fill="#9be7ff" stroke="none">1 folha</text></g>
+<ellipse cx="1360" cy="340" rx="70" ry="14" fill="none" stroke="url(#oGold)" stroke-width="3"/><ellipse cx="1360" cy="590" rx="70" ry="14" fill="none" stroke="url(#oGold)" stroke-width="3"/>
+${vig("o")}
+</svg>`;
+
+const sceneObservatorio=()=>({
+  intro:"O observatório apagou as luzes na noite do eclipse. O astrônomo-chefe sumiu e deixou o céu inteiro anotado em matrizes.",
+  salas:[{id:"cupula",nome:"Cúpula do telescópio",svg:salaCupula()},{id:"mapas",nome:"Sala de mapas",svg:salaMapas()}],
+  hotspots:[
+    {caso:0,sala:"cupula",nome:"Luneta",...box(700,300,360,420),
+      falaAbrir:"A luneta aponta numa direção fixa. Se a matriz não a desvia, é um autovetor.",
+      falaResolvido:"A direção se manteve, só esticou. O fator é o autovalor.",
+      pista:"Autovetor não muda de direção: Av é só um múltiplo de v."},
+    {caso:1,sala:"mapas",nome:"Lousa",...box(80,120,370,290),
+      falaAbrir:"Uma matriz triangular na lousa, meio apagada. A diagonal sobreviveu.",
+      falaResolvido:"Matriz triangular entrega os autovalores de bandeja: estão na diagonal.",
+      pista:"Em matriz triangular, os autovalores são os elementos da diagonal."},
+    {caso:2,sala:"cupula",nome:"Relógio astronômico",...box(110,160,300,330),requires:[1],
+      falaBloqueado:"Os anéis do relógio giram sem parar. A lousa da sala de mapas explica como lê-los.",
+      falaAbrir:"Cada ponteiro marca uma raiz do polinômio característico.",
+      falaResolvido:"Os anéis travaram nas duas raízes.",
+      pista:"Em 2×2, o polinômio característico é λ² − (traço)λ + det."},
+    {caso:3,sala:"mapas",nome:"Mapa de constelações",...box(490,100,380,240),requires:[0],
+      falaBloqueado:"O mapa está em outra base. Preciso antes saber para onde a luneta aponta.",
+      falaAbrir:"As estrelas estão anotadas numa base girada. Vamos levar o vetor para ela.",
+      falaResolvido:"Nas coordenadas novas, o mapa bate com o céu.",
+      pista:"Coordenadas numa base nova: resolva c₁b₁ + c₂b₂ = v."},
+    {caso:4,sala:"cupula",nome:"Prisma",...box(1070,430,290,210),requires:[2],
+      falaBloqueado:"O prisma está escuro. Sem o relógio astronômico, não sei que luz procurar.",
+      falaAbrir:"Entra luz complexa, saem cores reais. Coisa de matriz hermitiana.",
+      falaResolvido:"O espectro saiu todo real, como prometido.",
+      pista:"Matrizes hermitianas têm autovalores reais."},
+    {caso:5,sala:"mapas",nome:"Globo celeste",...box(980,340,220,380),requires:[3],
+      falaBloqueado:"O globo está travado. O mapa de constelações mostra o eixo de giro.",
+      falaAbrir:"Girar o globo não muda distâncias. Desfazer o giro é transpor.",
+      falaResolvido:"O giro desfeito revelou o ponto de partida.",
+      pista:"Matriz ortogonal: a inversa é a transposta."},
+    {caso:6,sala:"mapas",nome:"Caderno do astrônomo",...box(360,470,220,100),requires:[4,5],
+      falaBloqueado:"O caderno está em código. Preciso do prisma e do globo para decifrá-lo.",
+      falaAbrir:"Uma forma quadrática com termo misto. Nos eixos certos, ela fica limpa.",
+      falaResolvido:"Diagonalizada: só quadrados, nenhum termo misto.",
+      pista:"Na matriz da forma, os coeficientes de x² e y² vão na diagonal e metade do termo misto fora dela."},
+    {caso:7,sala:"cupula",nome:"Planetário",...box(150,500,340,290),requires:[6],
+      falaBloqueado:"As órbitas do planetário emperraram. O caderno do astrônomo tem a equação delas.",
+      falaAbrir:"Uma órbita inclinada. Que curva é essa, afinal?",
+      falaResolvido:"Uma elipse inclinada: os eixos principais a endireitam.",
+      pista:"Autovalores de mesmo sinal: a cônica é uma elipse."},
+    {caso:8,sala:"mapas",nome:"Maquete de retas",...box(1270,290,190,440),requires:[6],
+      falaBloqueado:"A maquete está coberta. O caderno explica o que ela representa.",
+      falaAbrir:"Retas que formam uma superfície curva. Quantas folhas ela tem?",
+      falaResolvido:"Uma folha só, feita de retas. Bela peça.",
+      pista:"Dois sinais positivos e um negativo, com lado direito positivo: hiperboloide de uma folha."},
+    {caso:9,sala:"mapas",nome:"Cavalete do gráfico",...box(720,330,210,450),requires:[0,1,2,3,4,5,6,7,8],
+      falaBloqueado:"O gráfico está coberto por um pano. Antes, todas as provas.",
+      falaAbrir:"Três observações, uma reta e um mentiroso. A reta de menor erro o denuncia.",
+      falaResolvido:"A reta apontou o esconderijo. O astrônomo nunca saiu do observatório.",
+      pista:"Mínimos quadrados: resolva AᵀA·c = Aᵀy."}
+  ],
+  final:{
+    texto:"A reta de mínimos quadrados cruzou o gráfico e apontou um único lugar: o próprio cavalete, onde o astrônomo se escondia. Cada autovalor indicou uma direção, e todas convergiram. Caso arquivado.",
+    fala:"No fim, todo erro tem um mínimo. Basta saber projetar."
+  }
+});
+
 const SCENES={
 cofre:()=>({
   intro:"O cofre está vazio e o ladrão deixou tudo arrumado demais. Vamos ver o que cada objeto confessa.",
@@ -625,5 +811,6 @@ cofre:()=>({
   }
 }),
 fantasma:sceneFantasma,
-dependencia:sceneDependencia
+dependencia:sceneDependencia,
+observatorio:sceneObservatorio
 };

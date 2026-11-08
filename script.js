@@ -114,7 +114,7 @@ addEventListener("pagehide",save);
 function mth(e){
   e=e.replace(/mat\(([^)]*)\)/g,(_,b)=>'<span class="mx">'+b.split(";").map(r=>'<span class="r">'+r.split(",").map(c=>"<i>"+c.trim()+"</i>").join("")+"</span>").join("")+"</span>");
   return e.replace(/RR/g,"ℝ").replace(/->/g,"→")
-    .replace(/\^\{([^}]*)\}/g,"<sup>$1</sup>").replace(/\^(-?\w+)/g,"<sup>$1</sup>").replace(/_(\w+)/g,"<sub>$1</sub>");
+    .replace(/\^\{([^}]*)\}/g,"<sup>$1</sup>").replace(/\^(-?\w+)/g,"<sup>$1</sup>").replace(/_(\d+|[A-Za-z])/g,"<sub>$1</sub>");   /* c_1x = c₁·x */
 }
 const M=s=>s.replace(/\$(.+?)\$/g,(_,e)=>'<span class="m">'+mth(e)+"</span>");
 
