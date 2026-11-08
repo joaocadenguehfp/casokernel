@@ -62,7 +62,7 @@ h1::before,.tag::before,.btn::before,.carimbo::before,.dif::before,.sheet::befor
 }
 
 /* ---------- Cabeçalho / HUD ---------- */
-header{position:relative;z-index:5;display:flex;flex-wrap:wrap;align-items:center;gap:12px 16px;max-width:1100px;margin:0 auto;padding:16px 20px 8px}
+header{position:relative;z-index:5;display:flex;flex-wrap:wrap;align-items:center;gap:12px 16px;max-width:1240px;margin:0 auto;padding:16px 20px 8px}
 h1{--cut:12px;--fill:linear-gradient(180deg,rgba(26,37,49,.96),rgba(11,16,23,.96));
   display:flex;align-items:center;margin:0;padding:9px 24px 9px 16px;
   font:700 1.2rem/1 var(--disp);letter-spacing:.16em;text-transform:uppercase;color:var(--gold2);text-shadow:0 0 12px rgba(212,175,55,.5)}
@@ -111,8 +111,8 @@ h1 .ic{margin-right:.55em;width:1.3em;height:1.3em}
 .d-f{color:var(--teal)}.d-m{color:var(--gold2)}.d-d{color:var(--copper)}.d-b{color:var(--red);text-shadow:0 0 8px rgba(255,90,77,.6)}
 
 /* ---------- Layout principal ---------- */
-main{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1fr);gap:44px 28px;max-width:1100px;margin:46px auto 40px;padding:0 20px}
-@media(min-width:820px){main{grid-template-columns:minmax(0,2.1fr) minmax(250px,1fr);align-items:start}.invw{position:sticky;top:16px}}
+main{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1fr);gap:44px 28px;max-width:1240px;margin:46px auto 40px;padding:0 20px}
+@media(min-width:820px){main{grid-template-columns:minmax(0,2.6fr) minmax(250px,1fr);align-items:start}.invw{position:sticky;top:16px}}
 
 /* Placa de grimório (card do problema) */
 .folder,.invw{position:relative;isolation:isolate}
@@ -193,6 +193,9 @@ ul{list-style:none;margin:0;padding:0;display:grid;gap:10px}
 #inv{margin-top:14px}
 li.cl{--cut:9px;--fill:linear-gradient(90deg,rgba(212,175,55,.18),rgba(212,175,55,.05));padding:9px 14px;font-size:.95rem;line-height:1.35;color:var(--mut)}
 li.cl b{display:block;color:var(--gold2);font-weight:700}
+li.cl .rl{display:block;width:calc(100% + 28px);margin:-9px -14px;padding:9px 14px;text-align:left;background:none;border:0;color:inherit;font:inherit;line-height:1.35}
+li.cl .rl:hover{background:rgba(79,195,247,.1)}
+li.cl .rl:focus-visible{box-shadow:inset 0 0 0 2px var(--cyan)}
 li.cl b .ic{color:var(--gold)}
 li.lk{--frame:linear-gradient(rgba(212,175,55,.35),rgba(212,175,55,.35));--ln:rgba(212,175,55,.35);--fill:rgba(0,0,0,.25);color:#8697a5}
 
@@ -249,7 +252,7 @@ li.lk{--frame:linear-gradient(rgba(212,175,55,.35),rgba(212,175,55,.35));--ln:rg
   #tm-box{order:5}#sc{order:6}
   .tag{padding:4px 10px;font-size:.9rem}
   .btn.sm{min-width:44px;min-height:44px;padding:6px 12px}
-  .btn.sm .t{display:none}.btn.sm .ic{margin:0}
+  header .btn.sm .t{display:none}header .btn.sm .ic{margin:0}
   main{margin-top:46px;gap:40px;padding:0 14px}
   .sheet{--cut:16px;padding:24px 16px 20px}
   #inv{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
@@ -258,3 +261,69 @@ li.lk{--frame:linear-gradient(rgba(212,175,55,.35),rgba(212,175,55,.35));--ln:rg
   .cs.boss{margin:8px 0 0}
   .m{white-space:normal;overflow-wrap:anywhere}
 }
+
+/* =====================================================================
+   POINT AND CLICK: cena, hotspots, diálogo e painel de problema
+   ===================================================================== */
+.sbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.rn{font:700 .95rem var(--disp);letter-spacing:.14em;text-transform:uppercase;color:var(--gold2)}
+.rn .ic{color:var(--cyan)}
+.rooms{display:flex;gap:8px;flex-wrap:wrap}
+.btn[aria-pressed=true].sm{--frame:linear-gradient(135deg,#bff0ff,#4fc3f7 50%,#16688f);--ln:#4fc3f7}
+.sbar kbd{margin-left:8px;padding:0 6px;border:1px solid currentColor;font:700 .7rem var(--ui);opacity:.8}
+@media(hover:none){.sbar kbd{display:none}}
+.scenewrap{overflow-x:auto;overflow-y:hidden;border:1px solid var(--gold3);background:#05080c;box-shadow:inset 0 0 30px rgba(0,0,0,.7)}
+.scene{position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;
+  --lupa:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'><circle cx='11' cy='11' r='7' fill='rgba(11,16,23,.55)' stroke='%23e5c158' stroke-width='2'/><path d='M16.5 16.5L25 25' stroke='%23e5c158' stroke-width='2.5' stroke-linecap='round'/></svg>") 11 11,pointer}
+.scene>svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.scene [data-on],.scene [data-off]{transition:opacity .8s}
+.scene.nt *{transition:none!important}
+/* névoa e partículas discretas */
+.scene::before{content:"";position:absolute;inset:0;pointer-events:none;z-index:1;
+  background:radial-gradient(circle 1.6px at 22% 38%,rgba(155,231,255,.75),transparent),radial-gradient(circle 1.2px at 41% 62%,rgba(155,231,255,.6),transparent),radial-gradient(circle 1.6px at 63% 30%,rgba(255,200,140,.6),transparent),radial-gradient(circle 1.2px at 78% 70%,rgba(155,231,255,.6),transparent),radial-gradient(circle 1.4px at 88% 40%,rgba(255,200,140,.55),transparent);
+  animation:motes 9s ease-in-out infinite alternate}
+.scene::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:1;
+  background:radial-gradient(ellipse 40% 22% at 28% 82%,rgba(160,200,230,.08),transparent 70%),radial-gradient(ellipse 34% 18% at 74% 72%,rgba(160,200,230,.07),transparent 70%);
+  animation:fog 20s ease-in-out infinite alternate}
+@keyframes motes{to{transform:translateY(-14px)}}
+@keyframes fog{from{transform:translateX(-3%)}to{transform:translateX(3%)}}
+@media(max-width:819px){.scene{min-width:900px}}
+@media(min-width:820px){.pan{display:none}}
+
+.hs{position:absolute;z-index:2;min-width:44px;min-height:44px;padding:0;margin:0;border:0;background:none;color:var(--txt);cursor:var(--lupa,pointer)}
+.hs::before{content:"";position:absolute;inset:0;border:1.5px solid transparent;pointer-events:none;transition:border-color .2s,box-shadow .2s,background .2s}
+.hs .mk{position:absolute;left:50%;top:50%;width:32px;height:32px;margin:-16px 0 0 -16px;display:grid;place-items:center;border-radius:50%;
+  background:rgba(11,16,23,.85);border:1px solid currentColor;transition:transform .2s}
+.hs .mk .ic{margin:0;width:16px;height:16px}
+.hs.av{color:var(--cyan2)}
+.hs.av::before{border-color:rgba(79,195,247,.3);animation:ring 2.4s ease-out infinite}
+.hs.av .mk{box-shadow:0 0 12px rgba(79,195,247,.65);animation:mk 2.4s ease-in-out infinite}
+.hs.lk{color:var(--gold)}
+.hs.lk::before{border:1.5px dashed rgba(212,175,55,.32)}
+.hs.lk .mk{opacity:.8}
+.hs.ok{color:var(--teal)}
+.hs.ok::before{border-color:rgba(63,208,160,.28)}
+.hs:hover,.hs:focus-visible{z-index:4}
+.hs:hover::before,.hs:focus-visible::before{border-color:var(--gold2);background:rgba(79,195,247,.1);box-shadow:0 0 22px rgba(79,195,247,.45),inset 0 0 22px rgba(79,195,247,.18)}
+.hs:hover .mk{transform:scale(1.12)}
+.hs:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
+.hl{position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%);padding:3px 12px;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .2s;
+  font:700 .75rem var(--ui);letter-spacing:.12em;text-transform:uppercase;color:var(--gold2);background:rgba(11,16,23,.94);border:1px solid var(--gold3)}
+.hs:hover .hl,.hs:focus-visible .hl,.hs.flash .hl,.scene.hint .hs:not(.ok) .hl{opacity:1}
+.scene.hint .hs:not(.ok)::before,.hs.flash::before{border-color:var(--cyan2);box-shadow:0 0 28px rgba(155,231,255,.7),inset 0 0 26px rgba(155,231,255,.3);animation:blink .5s ease-in-out 5 alternate}
+@keyframes ring{0%{box-shadow:0 0 0 0 rgba(79,195,247,.35)}100%{box-shadow:0 0 0 14px rgba(79,195,247,0)}}
+@keyframes mk{50%{transform:scale(1.1)}}
+@keyframes blink{from{opacity:.35}to{opacity:1}}
+
+.dlg{margin-top:14px;padding:10px 16px;min-height:4.2em;border-left:3px solid var(--gold);background:linear-gradient(90deg,rgba(212,175,55,.12),transparent)}
+.dlg .who{display:block;font:700 .72rem var(--disp);letter-spacing:.2em;text-transform:uppercase;color:var(--gold2)}
+.dlg p{margin:2px 0 0;font-style:italic}
+.fim .story{text-align:left;margin:18px 0}
+
+/* painel do problema (modal sobre a cena) */
+.pzp{width:min(720px,100%);--cut:22px}
+.pzp:focus{outline:none}
+#pzb{max-height:calc(92vh - 70px);max-height:calc(92dvh - 70px);overflow:auto;padding-right:6px}
+#fcb .clue{padding:12px 14px;border-left:3px solid var(--gold);background:linear-gradient(90deg,rgba(212,175,55,.13),transparent);color:var(--gold2);font-style:italic}
+#pzb{padding:14px 6px 2px 0}
+#pzb .cs.boss{margin:10px 0 0}

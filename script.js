@@ -1,23 +1,70 @@
 "use strict";
-/* ============ ESTADO E PERSISTÊNCIA ============ */
-const KEY="caso-kernel-v3",BKEY="caso-kernel-best",MAXHP=100,HIT=10,HINT=20,HEAL=10,N=10;
+/* =====================================================================
+   CASO KERNEL · motor point and click
+   - Casos com cena em SCENES (scenes.js): exploração + painel de problema.
+   - Casos sem cena: modo linear (fallback), igual ao jogo anterior.
+   ===================================================================== */
+const KEY="caso-kernel-v4",OLDKEY="caso-kernel-v3",BKEY="caso-kernel-best",MAXHP=100,HIT=10,HINT=20,HEAL=10,N=10;
 const $=id=>document.getElementById(id);
-/* Ícones SVG inline (sprite no index.html) no lugar dos emojis */
 const IC=n=>'<svg class="ic" aria-hidden="true" focusable="false"><use href="#i-'+n+'"/></svg>';
 const DIF={f:["◆","Fácil"],m:["◆","Médio"],d:["◆","Difícil"],b:["◆","Chefão"]};
-const fresh=()=>({seed:null,i:0,hp:MAXHP,score:0,h:0,w:0,sv:false,sel:null,last:0,clues:[],snd:true,over:false,fin:false,t:0});
-const rd=(k,d)=>{try{return Object.assign(d,JSON.parse(localStorage.getItem(k)))}catch(e){return d}};
-let S=rd(KEY,fresh()),best=rd(BKEY,{}),tk=Date.now(),qk="",enter=false;
+const SCN=typeof SCENES!=="undefined"?SCENES:[];
+
+/* ============ ESTADO E PERSISTÊNCIA (v4) ============ */
+/* solved: fases resolvidas | hs: {fase:{h:dicas,w:erros}} | open: fase com painel aberto
+   fc: dossiê aberto | sv/last: só no modo linear (feedback "Acertou") | room: sala atual */
+const fresh=()=>({seed:null,hp:MAXHP,score:0,solved:[],hs:{},open:null,sv:false,sel:null,fc:null,last:0,room:null,snd:true,over:false,fin:false,t:0});
+const rdj=k=>{try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}};
+const sceneOf=s=>s.seed===null?null:(SCN[s.seed]||null);
+const isAv=(s,i)=>{
+  const D=sceneOf(s);
+  if(D){const h=D.hotspots.find(x=>x.caso===i);return !!h&&(h.requires||[]).every(r=>s.solved.includes(r))}
+  for(let j=0;j<i;j++)if(!s.solved.includes(j))return false;
+  return true;
+};
+const firstUn=s=>{for(let i=0;i<N;i++)if(!s.solved.includes(i))return i;return null};
+
+function load(){
+  const s=fresh(),v4=rdj(KEY),v3=rdj(OLDKEY);
+  if(v4&&typeof v4==="object")Object.assign(s,v4);
+  else if(v3&&typeof v3==="object"){ /* migração v3 -> v4: aproveita o que dá */
+    ["seed","hp","score","snd","t","over","fin"].forEach(k=>{if(k in v3)s[k]=v3[k]});
+    s.solved=Array.isArray(v3.clues)?v3.clues:[];
+    s.sv=!!v3.sv;s.open=(!SCN[v3.seed]&&Number.isInteger(v3.i))?v3.i:null;   /* cena: volta a explorar */
+  }
+  return s;
+}
+function sanitize(s){
+  const base=Object.assign(fresh(),{snd:s.snd!==false});
+  if(!(Number.isInteger(s.seed)&&SEEDS[s.seed]))return base;
+  const n=(v,a,b,f)=>Number.isFinite(v)&&v>=a&&v<=b?v:f;
+  const I=v=>Number.isInteger(v)&&v>=0&&v<N&&!!SEEDS[s.seed].casos[v];
+  const r=Object.assign(base,{seed:s.seed,hp:n(s.hp,0,MAXHP,MAXHP),score:n(s.score,0,1e6,0),t:n(s.t,0,1e9,0),last:n(s.last,0,1e4,0),over:!!s.over,fin:!!s.fin});
+  r.solved=[...new Set((Array.isArray(s.solved)?s.solved:[]).filter(I))];
+  const hs={};
+  if(s.hs&&typeof s.hs==="object")for(const k in s.hs){const e=s.hs[k];if(I(+k)&&e)hs[k]={h:n(e.h,0,2,0),w:n(e.w,0,999,0)}}
+  r.hs=hs;
+  const D=SCN[s.seed]||null;
+  r.room=D?(D.salas.find(x=>x.id===s.room)||D.salas[0]).id:null;
+  if(r.over||r.fin)return r;
+  r.fc=I(s.fc)&&r.solved.includes(s.fc)?s.fc:null;
+  if(D){r.open=(I(s.open)&&!r.solved.includes(s.open)&&isAv(r,s.open))?s.open:null}
+  else{ /* linear */
+    const u=firstUn(r);
+    if(u===null){r.open=N-1;r.sv=true}
+    else if(s.sv&&I(s.open)&&r.solved.includes(s.open)){r.open=s.open;r.sv=true}
+    else{r.open=u;r.sv=false}
+  }
+  return r;
+}
+let S=sanitize(load()),best=Object.assign({},rdj(BKEY)||{}),tk=Date.now(),qk="",enter=false;
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S));localStorage.setItem(BKEY,JSON.stringify(best))}catch(e){}};
-/* [seção 7, item 3] estado salvo inválido (ex.: cases.js editado) volta ao início em vez de quebrar */
-const okState=s=>s.seed===null||(Number.isInteger(s.seed)&&!!SEEDS[s.seed]&&Number.isInteger(s.i)&&s.i>=0&&s.i<N&&!!SEEDS[s.seed].casos[s.i]);
-if(!okState(S))S=Object.assign(fresh(),{snd:S.snd!==false});
-S.clues=Array.isArray(S.clues)?S.clues.filter(k=>Number.isInteger(k)&&k>=0&&k<N):[];
-const cur=()=>SEEDS[S.seed].casos[S.i];
+const scn=()=>S.seed===null?null:(SCN[S.seed]||null);
+const cur=()=>SEEDS[S.seed].casos[S.open];
+const hsd=i=>S.hs[i]||(S.hs[i]={h:0,w:0});
 const fmt=ms=>{const s=Math.floor(ms/1000);return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0")};
 
 /* ============ CRONÔMETRO ============ */
-/* [item 4] pausa com a aba oculta; grava a cada ~5 s (e ao sair da página) */
 let ticks=0;
 setInterval(()=>{
   const n=Date.now();
@@ -55,6 +102,8 @@ function sfx(k){
   if(!S.snd)return;
   try{
     if(k==="key")noise(0,.04,.5,2500);
+    if(k==="pick"){noise(0,.03,.4,1800);tone(880,.02,.1,"sine",.12)}
+    if(k==="lock"){noise(0,.05,.4,900);tone(150,0,.1,"square",.08)}
     if(k==="hint"){noise(0,.04,.5,2500);noise(.1,.04,.5,3000);noise(.2,.04,.5,2200)}
     if(k==="ok"){noise(0,.08,.9,300);tone(110,0,.2,"triangle",.4);tone(1760,.3,.7,"sine",.15)}
     if(k==="no"){noise(0,.15,.9,200);tone(70,0,.3,"sawtooth",.3)}
@@ -64,138 +113,272 @@ function sfx(k){
 }
 
 /* ============ MODAIS (foco, inert, fundo clicável) ============ */
-/* [item 5] devolve o foco ao fechar, bloqueia o fundo com inert e prende o Tab no modal */
-let ret=null;
+let ret=null,lastHS=null;
 const syncInert=()=>{const on=!!document.querySelector(".ov.on");["header","main"].forEach(s=>{document.querySelector(s).inert=on})};
 function openM(id,f){if(!document.querySelector(".ov.on"))ret=document.activeElement;$(id).classList.add("on");syncInert();$(f).focus()}
 function closeM(id,back){
   $(id).classList.remove("on");syncInert();
-  if(back){const t=(id==="fc"&&$("rv"))||(id==="ov"&&$("again"))||ret;if(t&&t.focus&&document.contains(t))t.focus()}
+  if(back){const t=(id==="ov"&&$("again"))||ret;if(t&&t.focus&&document.contains(t))t.focus()}
   if(!document.querySelector(".ov.on"))ret=null;
 }
+const backFocus=()=>{const el=lastHS!==null&&$("hs"+lastHS);if(el)el.focus()};
 
 /* ============ LÓGICA ============ */
-/* [item 2] aceita o sinal de menos Unicode (− e –) ao colar respostas */
 const parse=v=>v.replace(/[−–]/g,"-").replace(/[()\s]/g,"").split(/[;,]/).filter(Boolean).map(p=>{if(p.includes("/")){const[a,b]=p.split("/");return +a/+b}return +p});
-const pts=()=>Math.max(100-10*S.h-5*S.w,10)+(cur().d==="b"?50:0);
+const pts=()=>{const d=hsd(S.open);return Math.max(100-10*d.h-5*d.w,10)+(cur().d==="b"?50:0)};
 const anim=(id,cls)=>{const el=$(id);el.classList.remove(cls);void el.offsetWidth;el.classList.add(cls)};
-const nextLabel=()=>S.i+1<N?IC("folder")+"Próxima fase":IC("trophy")+"Encerrar caso";
+const nextLabel=()=>S.solved.length>=N?IC("trophy")+"Encerrar caso":(scn()?IC("search")+"Continuar investigação":IC("folder")+"Próxima fase");
 
+/* ---- diálogo (barra sob a cena) ---- */
+let dlgWho="Detetive",dlgTxt="",dlgSeed=null;
+function paintDlg(){const d=$("dlg");if(d)d.innerHTML='<span class="who">'+dlgWho+"</span><p>"+dlgTxt+"</p>"}
+function say(who,txt){dlgWho=who;dlgTxt=txt;paintDlg()}
+
+/* ---- cena ---- */
+function hsHTML(h){
+  return '<button class="hs" id="hs'+h.caso+'" data-k="'+h.caso+'" style="left:'+h.x+"%;top:"+h.y+"%;width:"+h.w+"%;height:"+h.h+'%"><span class="mk"></span><span class="hl">'+h.nome+"</span></button>";
+}
+function buildScene(final){
+  const D=scn(),room=D.salas.find(r=>r.id===S.room)||D.salas[0],g=$("game");
+  let h='<div class="sbar"><span class="rn">'+IC("eye")+room.nome+"</span>";
+  if(D.salas.length>1)h+='<span class="rooms">'+D.salas.map(r=>'<button class="btn sm" data-room="'+r.id+'"'+(r.id===room.id?' aria-pressed="true"':"")+">"+r.nome+"</button>").join("")+"</span>";
+  if(!final)h+='<button class="btn sm" id="hlt">'+IC("search")+'<span class="t">Destacar objetos</span><kbd>H</kbd></button>';
+  h+='</div><div class="scenewrap" id="sw"><div class="scene'+(final?" final":"")+'" id="scene" data-key="'+S.seed+":"+room.id+":"+(final?"f":"p")+'">'+room.svg;
+  if(!final)h+=D.hotspots.filter(x=>x.sala===room.id).map(hsHTML).join("");
+  h+='</div></div><p class="keys pan">Arraste a cena para os lados para explorar.</p><div class="dlg" id="dlg" role="status" aria-live="polite"></div>';
+  if(final){
+    h+='<div class="fim"><h2>'+IC("trophy")+'Caso resolvido</h2><div class="carimbo v">Arquivado</div><p class="story">'+D.final.texto+"</p><p><b>"+SEEDS[S.seed].nome+"</b><br>"+IC("medal")+"Pontuação: <b>"+S.score+"</b> · "+IC("heart")+"Vida: "+S.hp+"/"+MAXHP+"<br>"+IC("clock")+"Tempo total: <b>"+fmt(S.t)+"</b> · "+IC("flag")+"Melhor: "+fmt(best[S.seed])+'</p><button class="btn stamp" id="again">'+IC("folder")+"Escolher outro caso</button></div>";
+  }
+  g.innerHTML=h;
+  g.querySelectorAll(".hs").forEach(b=>b.onclick=()=>hsClick(+b.dataset.k));
+  g.querySelectorAll("[data-room]").forEach(b=>b.onclick=()=>{S.room=b.dataset.room;save();render()});
+  if($("hlt"))$("hlt").onclick=flashAll;
+  if(final)$("again").onclick=reset;
+  const sc0=$("scene");sc0.classList.add("nt");paintScene();   /* 1ª pintura sem transição */
+  requestAnimationFrame(()=>requestAnimationFrame(()=>sc0.classList.remove("nt")));
+  const w=$("sw");w.scrollLeft=(w.scrollWidth-w.clientWidth)/2;
+  if(final){dlgSeed=S.seed;say("Detetive",D.final.fala)}
+  else if(dlgSeed!==S.seed){dlgSeed=S.seed;say("Detetive",D.intro)}
+  else paintDlg();
+}
+function paintScene(){
+  const D=scn(),s=$("scene");if(!s)return;
+  const R=S.solved;
+  s.querySelectorAll(".hs").forEach(b=>{
+    const k=+b.dataset.k,h=D.hotspots.find(x=>x.caso===k),ok=R.includes(k),av=!ok&&isAv(S,k);
+    b.classList.remove("av","lk","ok");b.classList.add(ok?"ok":av?"av":"lk");
+    b.setAttribute("aria-label",h.nome+(ok?" — resolvido, rever o dossiê":av?" — disponível":" — bloqueado"));
+    b.setAttribute("aria-disabled",ok||av?"false":"true");
+    b.querySelector(".mk").innerHTML=IC(ok?"check":av?"search":"lock");
+  });
+  s.querySelectorAll("[data-on]").forEach(e=>{e.style.opacity=R.includes(+e.dataset.on)?1:0});
+  s.querySelectorAll("[data-off]").forEach(e=>{e.style.opacity=R.includes(+e.dataset.off)?0:1});
+}
+function ensureScene(){
+  const D=scn(),room=D.salas.find(r=>r.id===S.room)||D.salas[0],s=$("scene");
+  if(!s||s.dataset.key!==S.seed+":"+room.id+":p")buildScene(false);
+  paintScene();
+}
+let fl1=null;
+function flashAll(){
+  const s=$("scene");if(!s)return;
+  s.classList.remove("hint");void s.offsetWidth;s.classList.add("hint");
+  clearTimeout(fl1);fl1=setTimeout(()=>s.classList.remove("hint"),2400);sfx("key");
+}
+function flashOne(k){
+  const b=$("hs"+k);if(!b)return;
+  b.scrollIntoView({block:"nearest",inline:"center",behavior:"smooth"});
+  b.classList.add("flash");setTimeout(()=>b.classList.remove("flash"),2400);
+}
+function hsClick(k){
+  if(S.over||S.fin)return;
+  const D=scn(),h=D.hotspots.find(x=>x.caso===k);lastHS=k;
+  if(S.solved.includes(k)){sfx("pick");say(h.quem||"Detetive",h.falaResolvido||"Já resolvido.");S.fc=k;save();render();return}
+  if(!isAv(S,k)){sfx("lock");say("Detetive",h.falaBloqueado||"Ainda não consigo abrir isto.");return}
+  sfx("pick");say("Detetive",h.falaAbrir||"Vamos ver o que isto esconde.");
+  S.open=k;S.sel=null;save();render();
+}
+
+/* ---- problema (painel sobre a cena ou card linear) ---- */
+function puzzleHTML(P,i,modal){
+  const d=hsd(i),b=P.d==="b",df=DIF[P.d],sv=!modal&&S.sv,H=modal?scn().hotspots.find(x=>x.caso===i):null;
+  let h='<div class="cs'+(b?" boss":"")+'">'+(b?'<div class="carimbo suspeito">Suspeito principal</div>':"")+'<div class="fase">'+IC(modal?"pin":"folder")+(modal?H.nome+" · Pista "+(i+1)+" de "+N:"Fase "+(i+1)+" de "+N)+' <span class="dif d-'+P.d+'">'+df[0]+" "+df[1]+"</span></div><h2>"+IC("eye")+P.t+"</h2>"+(P.s?'<div class="story">'+M(P.s)+"</div>":"")+'<div class="q">'+IC("search")+M(P.q)+"</div>";
+  if(P.type==="choice"){
+    h+='<div class="opts" role="group" aria-label="Alternativas">'+P.o.map((o,k)=>'<button class="btn opt" data-k="'+k+'" aria-pressed="'+(S.sel===k)+'"'+(sv?" disabled":"")+">"+String.fromCharCode(65+k)+") "+M(o)+"</button>").join("")+"</div>";
+    if(!sv)h+='<p class="keys">Atalhos: teclas A–D (ou 1–4) escolhem · Enter analisa'+(modal?" · Esc volta à cena":"")+"</p>";
+  }
+  else h+='<div class="row"><input id="ans" aria-label="Sua resposta" placeholder="Digite sua resposta" autocomplete="off"'+(sv?" disabled":"")+"></div>";
+  if(!sv)h+='<div class="row"><button class="btn stamp" id="chk">'+IC("search")+'Analisar resposta</button><button class="btn cyan" id="hb"'+(d.h>=2?" disabled":"")+">"+IC("bulb")+"Pedir dica (−"+HINT+" HP)</button>"+(modal?'<button class="btn" id="bk">'+IC("eye")+"Voltar à cena</button>":"")+"</div>";
+  for(let k=0;k<d.h;k++)h+='<div class="hint">'+IC("bulb")+M(P.h[k])+"</div>";
+  h+='<div id="fb" role="status">'+(sv?'<span class="carimbo v">Acertou!</span> <span class="good">+'+S.last+" pts · +"+HEAL+' HP</span><div class="row"><button class="btn" id="rv">'+IC("note")+'Rever dossiê</button><button class="btn stamp" id="nx">'+nextLabel()+"</button></div>":"")+"</div></div>";
+  return h;
+}
+function renderPuzzle(box,i,modal){
+  /* preserva o que foi digitado quando render() roda por dica/erro no mesmo problema */
+  const key=S.seed+":"+i,keep=($("ans")&&qk===key)?$("ans").value:"";
+  box.innerHTML=puzzleHTML(SEEDS[S.seed].casos[i],i,modal);
+  if(!modal&&enter){const c=box.firstElementChild;if(c)c.classList.add("enter");enter=false}
+  box.querySelectorAll(".opt").forEach(x=>x.onclick=()=>{S.sel=+x.dataset.k;sfx("key");save();render();const c=$("chk");if(c)c.focus()});
+  const a=$("ans");
+  if(a){if(keep){a.value=keep;a.setSelectionRange(keep.length,keep.length)}a.oninput=()=>sfx("key");a.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();check()}};a.focus()}
+  qk=key;
+  if($("chk"))$("chk").onclick=check;
+  if($("hb"))$("hb").onclick=hint;
+  if($("bk"))$("bk").onclick=closePz;
+  if($("rv"))$("rv").onclick=()=>{S.fc=S.open;save();render()};
+  if($("nx"))$("nx").onclick=next;
+}
+
+/* ---- dossiê ---- */
+function fillFC(i){
+  const P=SEEDS[S.seed].casos[i],f=FL[P.k],D=scn(),H=D&&D.hotspots.find(x=>x.caso===i);
+  $("fcb").innerHTML="<h3>"+IC("note")+"Dossiê · Folha de anotações</h3>"+
+    (H&&H.pista?'<p class="clue"><span class="lb">Achado na cena · '+H.nome+"</span>"+H.pista+"</p>":"")+
+    '<p class="concept"><span class="lb">Conceito-chave</span>'+f.k+"</p>"+
+    '<p class="tip"><span class="lb">Dica de prova</span>'+M(f.p)+"</p>"+
+    '<p class="case"><span class="lb">Neste caso</span>'+M(P.e)+"</p>";
+  $("fcn").innerHTML=nextLabel();
+}
+
+/* ---- render principal ---- */
 function render(){
-  /* [item 1] preserva o que foi digitado quando render() roda por dica/erro na mesma fase */
-  const key=S.seed+":"+S.i,keep=($("ans")&&qk===key)?$("ans").value:"";
   $("sc").innerHTML=IC("medal")+S.score+" pts";
   $("tm").textContent=fmt(S.t);
   $("snd").innerHTML=IC(S.snd?"sound":"mute")+'<span class="t">'+(S.snd?"Áudio":"Mudo")+"</span>";
   $("hpf").style.width=S.hp+"%";
   $("hpf").className="hpf"+(S.hp<=30?" low":S.hp<=60?" mid":"");
   $("hpt").textContent=S.hp+"/"+MAXHP;$("hp").setAttribute("aria-valuenow",S.hp);
-  const sd=S.seed===null?null:SEEDS[S.seed],done=sd?S.i+(S.sv||S.fin?1:0):0;
+  const sd=S.seed===null?null:SEEDS[S.seed],D=scn(),done=sd?S.solved.length:0;
   $("pf").style.width=(done/N*100)+"%";$("pb").setAttribute("aria-valuenow",done*10);
   $("folder").dataset.label="Caso nº 0417"+(sd?" · "+sd.nome:"");
-  $("inv").innerHTML=sd?Array.from({length:N},(_,k)=>S.clues.includes(k)?'<li class="cl"><b>'+IC("pin")+sd.casos[k].t+"</b>"+FL[sd.casos[k].k].k+"</li>":'<li class="cl lk">'+IC("lock")+"Pista "+(k+1)+" oculta</li>").join(""):'<li class="cl lk">'+IC("lock")+"Escolha uma investigação.</li>";
+  $("inv").innerHTML=sd?Array.from({length:N},(_,k)=>S.solved.includes(k)?'<li class="cl"><button class="rl" data-k="'+k+'"><b>'+IC("pin")+sd.casos[k].t+"</b>"+FL[sd.casos[k].k].k+"</button></li>":'<li class="cl lk">'+IC("lock")+"Pista "+(k+1)+" oculta</li>").join(""):'<li class="cl lk">'+IC("lock")+"Escolha uma investigação.</li>";
+  $("inv").querySelectorAll(".rl").forEach(b=>b.onclick=()=>relic(+b.dataset.k));
+
+  /* qual modal deve estar aberto (o estado manda; recarregar a página restaura) */
+  const want=(!sd||S.over||S.fin)?null:(S.fc!==null?"fc":(D&&S.open!==null?"pz":null));
+  ["pz","fc"].forEach(id=>{if($(id).classList.contains("on")&&want!==id)closeM(id,false)});
+
   const g=$("game");
   if(!sd){
-    g.innerHTML='<h2>'+IC("folder")+'Escolha a investigação</h2><p class="story">Cada caso tem 10 fases. O cronômetro começa ao abrir o arquivo.</p><div class="opts">'+SEEDS.map((s,k)=>'<button class="btn seedc" data-k="'+k+'"><b>'+s.ic+" "+s.nome+"</b><br><small>"+s.intro+(best[k]!=null?" · "+IC("flag")+"Melhor tempo: "+fmt(best[k]):"")+"</small></button>").join("")+"</div>";
-    g.querySelectorAll(".seedc").forEach(b=>b.onclick=()=>{S=Object.assign(fresh(),{snd:S.snd,seed:+b.dataset.k});tk=Date.now();save();render()});
+    qk="";$("pzb").innerHTML="";
+    g.innerHTML='<h2>'+IC("folder")+'Escolha a investigação</h2><p class="story">Cada caso tem 10 pistas. O cronômetro começa ao abrir o arquivo.</p><div class="opts">'+SEEDS.map((s,k)=>'<button class="btn seedc" data-k="'+k+'"><b>'+s.ic+" "+s.nome+"</b><br><small>"+s.intro+" · "+(SCN[k]?IC("search")+"Point and click":"Modo linear")+(best[k]!=null?" · "+IC("flag")+"Melhor tempo: "+fmt(best[k]):"")+"</small></button>").join("")+"</div>";
+    g.querySelectorAll(".seedc").forEach(b=>b.onclick=()=>{
+      S=Object.assign(fresh(),{snd:S.snd,seed:+b.dataset.k});
+      const Dn=SCN[S.seed];if(Dn)S.room=Dn.salas[0].id;else S.open=0;
+      tk=Date.now();dlgSeed=null;lastHS=null;save();render();
+    });
     return;
   }
   if(S.over){
-    g.innerHTML='<div class="fim"><h2>'+IC("skull")+'Investigação fracassada</h2><div class="carimbo">Detetive fora de combate</div><p>Sua vida chegou a zero na fase '+(S.i+1)+" de "+N+" ("+sd.nome+"). Pontuação: "+S.score+" · "+IC("clock")+fmt(S.t)+'.</p><button class="btn stamp" id="again">'+IC("reset")+'Reiniciar investigação</button></div>';
+    qk="";$("pzb").innerHTML="";
+    g.innerHTML='<div class="fim"><h2>'+IC("skull")+'Investigação fracassada</h2><div class="carimbo">Detetive fora de combate</div><p>Sua vida chegou a zero ('+sd.nome+"). Pistas coletadas: "+S.solved.length+" de "+N+" · Pontuação: "+S.score+" · "+IC("clock")+fmt(S.t)+'.</p><button class="btn stamp" id="again">'+IC("reset")+'Reiniciar investigação</button></div>';
     $("again").onclick=reset;return;
   }
   if(S.fin){
-    g.innerHTML='<div class="fim"><h2>'+IC("trophy")+'Caso resolvido</h2><div class="carimbo v">Arquivado</div><p><b>'+sd.nome+"</b><br>"+IC("medal")+"Pontuação: <b>"+S.score+"</b> · "+IC("heart")+"Vida: "+S.hp+"/"+MAXHP+"<br>"+IC("clock")+"Tempo total: <b>"+fmt(S.t)+"</b> · "+IC("flag")+"Melhor: "+fmt(best[S.seed])+'</p><button class="btn stamp" id="again">'+IC("folder")+'Escolher outro caso</button></div>';
+    qk="";$("pzb").innerHTML="";
+    if(D){buildScene(true);paintScene();return}
+    g.innerHTML='<div class="fim"><h2>'+IC("trophy")+'Caso resolvido</h2><div class="carimbo v">Arquivado</div><p><b>'+sd.nome+"</b><br>"+IC("medal")+"Pontuação: <b>"+S.score+"</b> · "+IC("heart")+"Vida: "+S.hp+"/"+MAXHP+"<br>"+IC("clock")+"Tempo total: <b>"+fmt(S.t)+"</b> · "+IC("flag")+"Melhor: "+fmt(best[S.seed])+'</p><button class="btn stamp" id="again">'+IC("folder")+"Escolher outro caso</button></div>";
     $("again").onclick=reset;return;
   }
-  const P=cur(),b=P.d==="b",df=DIF[P.d];
-  let h='<div class="cs'+(b?" boss":"")+'">'+(b?'<div class="carimbo suspeito">Suspeito principal</div>':"")+'<div class="fase">'+IC("folder")+"Fase "+(S.i+1)+" de "+N+' <span class="dif d-'+P.d+'">'+df[0]+" "+df[1]+"</span></div><h2>"+IC("eye")+P.t+"</h2>"+(P.s?'<div class="story">'+M(P.s)+"</div>":"")+'<div class="q">'+IC("search")+M(P.q)+"</div>";
-  if(P.type==="choice"){
-    h+='<div class="opts" role="group" aria-label="Alternativas">'+P.o.map((o,k)=>'<button class="btn opt" data-k="'+k+'" aria-pressed="'+(S.sel===k)+'"'+(S.sv?" disabled":"")+">"+String.fromCharCode(65+k)+") "+M(o)+"</button>").join("")+"</div>";
-    if(!S.sv)h+='<p class="keys">Atalhos: teclas A–D (ou 1–4) escolhem · Enter analisa</p>';
+  if(D)ensureScene();
+  else{
+    if(S.open===null){const u=firstUn(S);if(u===null){finish();return}S.open=u}
+    renderPuzzle(g,S.open,false);
   }
-  else h+='<div class="row"><input id="ans" aria-label="Sua resposta" placeholder="Digite sua resposta" autocomplete="off"'+(S.sv?" disabled":"")+"></div>";
-  if(!S.sv)h+='<div class="row"><button class="btn stamp" id="chk">'+IC("search")+'Analisar resposta</button><button class="btn cyan" id="hb"'+(S.h>=2?" disabled":"")+">"+IC("bulb")+"Pedir dica (−"+HINT+" HP)</button></div>";
-  for(let k=0;k<S.h;k++)h+='<div class="hint">'+IC("bulb")+M(P.h[k])+"</div>";
-  h+='<div id="fb" role="status">'+(S.sv?'<span class="carimbo v">Acertou!</span> <span class="good">+'+S.last+" pts · +"+HEAL+' HP</span><div class="row"><button class="btn" id="rv">'+IC("note")+'Rever dossiê</button><button class="btn stamp" id="nx">'+nextLabel()+"</button></div>":"")+"</div></div>";
-  g.innerHTML=h;
-  if(enter){const c=g.firstElementChild;if(c)c.classList.add("enter");enter=false}
-  g.querySelectorAll(".opt").forEach(x=>x.onclick=()=>{S.sel=+x.dataset.k;sfx("key");save();render()});
-  const a=$("ans");if(a){if(keep){a.value=keep;a.setSelectionRange(keep.length,keep.length)}a.oninput=()=>sfx("key");a.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();check()}};a.focus()}
-  qk=key;
-  if($("chk"))$("chk").onclick=check;
-  if($("hb"))$("hb").onclick=hint;
-  if($("rv"))$("rv").onclick=openFC;
-  if($("nx"))$("nx").onclick=next;
+  if(want==="pz"){
+    if(!$("pz").classList.contains("on"))openM("pz","pzp");
+    renderPuzzle($("pzb"),S.open,true);
+  }
+  if(want==="fc"){
+    fillFC(S.fc);
+    if(!$("fc").classList.contains("on"))openM("fc","fcn");
+  }
 }
-function openFC(){
-  const P=cur(),f=FL[P.k];
-  $("fcb").innerHTML="<h3>"+IC("note")+"Dossiê · Folha de anotações</h3>"+
-    '<p class="concept"><span class="lb">Conceito-chave</span>'+f.k+"</p>"+
-    '<p class="tip"><span class="lb">Dica de prova</span>'+M(f.p)+"</p>"+
-    '<p class="case"><span class="lb">Neste caso</span>'+M(P.e)+"</p>";
-  $("fcn").innerHTML=nextLabel();openM("fc","fcn");
+
+/* ---- ações ---- */
+function relic(k){
+  if(S.over||S.fin)return;
+  if(scn()){const h=scn().hotspots.find(x=>x.caso===k);lastHS=k;flashOne(k);say("Detetive","Esta pista veio de: "+h.nome+".")}
+  else{S.fc=k;save();render()}
 }
+function closePz(){S.open=null;S.sel=null;save();render();backFocus()}
+function dismissFC(){if(scn())next();else{S.fc=null;save();render()}}
 function damage(n){
   S.hp=Math.max(0,S.hp-n);
-  if(S.hp===0){S.over=true;sfx("lose")}
+  if(S.hp===0){S.over=true;S.open=null;S.fc=null;sfx("lose")}
   save();render();anim("folder","hit");
 }
-function hint(){if(S.h>=2)return;S.h++;sfx("hint");damage(HINT)}
+function hint(){const d=hsd(S.open);if(d.h>=2)return;d.h++;sfx("hint");damage(HINT)}
 function check(){
-  const P=cur();let ok;
+  const P=cur(),i=S.open;let ok;
   if(P.type==="choice"){if(S.sel===null)return msg("Escolha uma alternativa antes de analisar.");ok=S.sel===P.a}
   else{const u=parse($("ans").value),a=[].concat(P.a);
     if(!u.length||u.some(isNaN))return msg("Formato inválido. Use números, por exemplo 5,6 ou 1/2.");
     ok=u.length===a.length&&u.every((x,k)=>Math.abs(x-a[k])<1e-6)}
   if(ok){
-    S.last=pts();S.score+=S.last;S.hp=Math.min(MAXHP,S.hp+HEAL);S.clues.push(S.i);S.sv=true;
-    sfx("ok");save();render();anim("folder","ok");openFC();
+    S.last=pts();S.score+=S.last;S.hp=Math.min(MAXHP,S.hp+HEAL);S.solved.push(i);S.fc=i;S.sel=null;
+    const D=scn();
+    if(D){const h=D.hotspots.find(x=>x.caso===i);S.open=null;S.sv=false;say(h.quem||"Detetive",h.falaResolvido||"Pista conseguida.")}
+    else S.sv=true;
+    sfx("ok");save();render();anim("folder","ok");
   }else{
-    S.w++;sfx("no");damage(HIT);
+    hsd(i).w++;sfx("no");damage(HIT);
     if(!S.over)msg("✘ Resposta incorreta (−"+HIT+" HP). Revise ou peça uma dica.");
   }
 }
 function msg(t){const f=$("fb");if(f)f.innerHTML='<span class="bad">'+t+"</span>"}
-function next(){
-  closeM("fc",false);
-  if(S.i+1>=N){
-    S.fin=true;if(best[S.seed]==null||S.t<best[S.seed])best[S.seed]=S.t;
-    save();render();sfx("win");
-    $("ovp").textContent=SEEDS[S.seed].nome+": "+S.score+" pontos, "+S.hp+" HP, tempo total "+fmt(S.t)+".";
-    openM("ov","ovb");return;
-  }
-  S.i++;S.h=0;S.w=0;S.sv=false;S.sel=null;enter=true;save();render();
+function finish(){
+  S.fin=true;S.open=null;S.fc=null;S.sv=false;
+  if(best[S.seed]==null||S.t<best[S.seed])best[S.seed]=S.t;
+  save();render();sfx("win");
+  $("ovp").textContent=SEEDS[S.seed].nome+": "+S.score+" pontos, "+S.hp+" HP, tempo total "+fmt(S.t)+".";
+  openM("ov","ovb");
 }
-function reset(){const s=S.snd;S=fresh();S.snd=s;save();render()}
+function next(){
+  S.fc=null;
+  if(S.solved.length>=N){finish();return}
+  if(!scn()){S.open=firstUn(S);S.sel=null;S.sv=false;enter=true}
+  save();render();
+  if(scn())backFocus();
+}
+function reset(){
+  const s=S.snd;S=fresh();S.snd=s;qk="";dlgSeed=null;lastHS=null;
+  if($("ov").classList.contains("on"))closeM("ov",false);
+  save();render();
+}
 
 $("rs").onclick=()=>{if(S.seed===null||confirm("Reiniciar e voltar à escolha de casos? O progresso atual será apagado."))reset()};
 $("snd").onclick=()=>{S.snd=!S.snd;save();render()};
 $("ovb").onclick=()=>closeM("ov",true);
 $("fcn").onclick=next;
-/* [item 5] clicar no fundo fecha sem avançar de fase */
+/* clicar no fundo: dossiê/painel fecham sem custo; o final só fecha o aviso */
 $("ov").onclick=e=>{if(e.target===$("ov"))closeM("ov",true)};
-$("fc").onclick=e=>{if(e.target===$("fc"))closeM("fc",true)};
+$("fc").onclick=e=>{if(e.target===$("fc"))dismissFC()};
+$("pz").onclick=e=>{if(e.target===$("pz"))closePz()};
 
 document.addEventListener("keydown",e=>{
-  if(e.key==="Escape"){if($("ov").classList.contains("on"))closeM("ov",true);else if($("fc").classList.contains("on"))closeM("fc",true);return}
-  /* prende o Tab dentro do modal aberto */
-  const m=document.querySelector(".ov.on");
-  if(m){
-    if(e.key==="Tab"){
-      const f=[...m.querySelectorAll("button:not(:disabled)")];if(!f.length)return;
-      const a=f[0],z=f[f.length-1];
-      if(e.shiftKey&&document.activeElement===a){e.preventDefault();z.focus()}
-      else if(!e.shiftKey&&document.activeElement===z){e.preventDefault();a.focus()}
-    }
+  if(e.key==="Escape"){
+    if($("ov").classList.contains("on"))closeM("ov",true);
+    else if($("fc").classList.contains("on"))dismissFC();
+    else if($("pz").classList.contains("on"))closePz();
     return;
   }
-  /* [item 6] atalhos nas questões de múltipla escolha: A–D/1–4 escolhem, Enter analisa */
-  if(e.ctrlKey||e.metaKey||e.altKey||S.seed===null||S.over||S.fin||S.sv)return;
-  const P=cur();if(P.type!=="choice")return;
+  const m=document.querySelector(".ov.on");
+  if(m&&e.key==="Tab"){ /* prende o Tab dentro do modal aberto */
+    const f=[...m.querySelectorAll("button:not(:disabled),input:not(:disabled)")];if(!f.length)return;
+    const a=f[0],z=f[f.length-1];
+    if(e.shiftKey&&document.activeElement===a){e.preventDefault();z.focus()}
+    else if(!e.shiftKey&&document.activeElement===z){e.preventDefault();a.focus()}
+    return;
+  }
+  if(e.ctrlKey||e.metaKey||e.altKey||S.seed===null||S.over||S.fin)return;
+  if(m&&m.id!=="pz")return;
   const t=e.target.tagName;if(t==="INPUT"||t==="TEXTAREA")return;
-  const j=e.key.length===1?("abcd".indexOf(e.key.toLowerCase())>=0?"abcd".indexOf(e.key.toLowerCase()):"1234".indexOf(e.key)):-1;
-  if(j>=0&&j<P.o.length){S.sel=j;sfx("key");save();render();return}
+  if(!m&&scn()&&e.key.toLowerCase()==="h"){flashAll();return}   /* destacar objetos */
+  if(S.open===null||S.sv)return;
+  const P=cur();if(P.type!=="choice")return;
+  const k=e.key.length===1?("abcd".indexOf(e.key.toLowerCase())>=0?"abcd".indexOf(e.key.toLowerCase()):"1234".indexOf(e.key)):-1;
+  if(k>=0&&k<P.o.length){S.sel=k;sfx("key");save();render();const c=$("chk");if(c)c.focus();return}
   if(e.key==="Enter"&&t!=="BUTTON"){e.preventDefault();check()}
 });
 render();
