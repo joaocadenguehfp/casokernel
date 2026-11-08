@@ -349,3 +349,14 @@ li.lk{--frame:linear-gradient(rgba(212,175,55,.35),rgba(212,175,55,.35));--ln:rg
 /* resumo final: conceitos para revisar */
 .weak{max-width:560px;margin:4px auto 18px;padding:10px 14px;text-align:left;color:#ffd9b0;border-left:3px solid var(--copper);background:linear-gradient(90deg,rgba(255,123,0,.12),transparent)}
 .weak .ic{color:var(--copper)}.weak .wn{color:var(--mut)}
+
+/* ---------- Prévia da resposta e barra de símbolos (celular) ---------- */
+.pv{min-height:1.5em;margin:10px 0 0;font-size:1rem;color:var(--cyan2)}
+.pv:empty{display:none}
+.pv.warn{color:#ffd9b0}
+.pv .ic{color:currentColor}
+.pv .m{color:#fff;text-shadow:0 0 10px rgba(79,195,247,.5)}
+.fr{display:inline-flex;align-items:baseline}.fr sup,.fr sub{font-size:.8em}
+.symbar{display:none;gap:8px;margin-top:10px}
+.symbar .sym{flex:1;min-width:52px;font:700 1.3rem var(--math);text-transform:none;letter-spacing:0}
+@media(pointer:coarse){.symbar{display:flex}}

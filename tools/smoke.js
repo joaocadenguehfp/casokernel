@@ -99,7 +99,18 @@ const fmtAns=(a,dec)=>[].concat(a).map(v=>{
         hinted=true;
       }
       if(P.type==="choice"){await page.locator(box+" .opt").nth(P.a).click()}
-      else await page.fill("#ans",fmtAns(P.a,solved%2===1));   /* alterna "3,1" e "3; 1" / vírgula decimal */
+      else{ /* alterna "3,1" e "3; 1" / vírgula decimal; no celular, símbolos pela barra */
+        const txt=fmtAns(P.a,solved%2===1);
+        if(MOBILE){
+          await page.fill("#ans","");
+          for(const ch of txt){
+            if("-/;,".includes(ch))await page.click('.sym[data-ins="'+ch+'"]');
+            else await page.locator("#ans").pressSequentially(ch);
+          }
+          if(await page.inputValue("#ans")!==txt)fail(sd.id+": barra de símbolos digitou '"+await page.inputValue("#ans")+"' em vez de '"+txt+"'");
+        }else await page.fill("#ans",txt);
+        if(await page.locator("#pv.warn").count())fail(sd.id+": prévia acusou problema em resposta válida '"+txt+"': "+await page.locator("#pv").innerText());
+      }
       await page.click("#chk");
       await page.waitForSelector("#fc.on",{timeout:3000}).catch(async()=>{
         const fb=await page.locator("#fb").innerText().catch(()=>"");
@@ -138,7 +149,7 @@ const fmtAns=(a,dec)=>[].concat(a).map(v=>{
   report.push("migração v4 -> v5: ok");
 
   /* parser de respostas */
-  const pr=await page.evaluate(()=>[parse("3,1",2),parse("2; 1,5",2),parse("1,5",1),parse("2,1,5",2),parse("1/2",1),parse("(−1, 5)",2),parse("abc",1),parse("1/0",1)]);
+  const pr=await page.evaluate(()=>[parse("3,1",2),parse("2; 1,5",2),parse("1,5",1),parse("2,1,5",2),parse("1/2",1),parse("(−1, 5)",2),parse("abc",1),parse("1/0",1)].map(r=>{delete r.raw;return r}));
   const want=[{v:[3,1]},{v:[2,1.5]},{v:[1.5]},{amb:true},{v:[.5]},{v:[-1,5]},{bad:true},{bad:true}];
   if(JSON.stringify(pr)!==JSON.stringify(want))fail("parser: "+JSON.stringify(pr));
   report.push("parser de respostas: ok");

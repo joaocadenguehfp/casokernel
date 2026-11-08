@@ -181,7 +181,27 @@ function parse(v,n){
     }
   }
   const r=p.map(num);
-  return !r.length||r.some(isNaN)?{bad:true}:{v:r};
+  return !r.length||r.some(isNaN)?{bad:true}:{v:r,raw:p};
+}
+/* prévia do que será enviado, com o renderizador do jogo (frações e vírgula decimal) */
+function preview(){
+  const a=$("ans"),pv=$("pv");if(!a||!pv)return;
+  const n=+a.dataset.n,v=a.value.trim();
+  if(!v){pv.className="pv";pv.innerHTML="";return}
+  const r=parse(v,n);
+  if(r.amb||r.bad){pv.className="pv warn";pv.innerHTML=IC("bulb")+(r.amb?"Ambíguo: separe os números com ponto e vírgula (ex.: 2; 1,5).":"Formato ainda incompleto ou inválido.");return}
+  const fx=t=>(+t<0?"−":"")+String(Math.abs(+t)).replace(".",","),
+    show=r.raw.map(t=>{if(t.includes("/")){const[x,y]=t.split("/");return '<span class="fr"><sup>'+fx(x)+"</sup>⁄<sub>"+fx(y)+"</sub></span>"}return fx(t)}),
+    dec=r.raw.some(t=>/\./.test(t)),k=r.v.length;
+  pv.className="pv"+(k!==n?" warn":"");
+  pv.innerHTML=IC(k===n?"check":"bulb")+"Você vai enviar: <span class=\"m\">"+(k>1?"(":"")+show.join(dec?"; ":", ")+(k>1?")":"")+"</span>"+
+    (k!==n?" · esperado: "+n+" número"+(n>1?"s":""):"");
+}
+/* barra de símbolos (celular): insere na posição do cursor sem fechar o teclado */
+function ins(ch){
+  const a=$("ans");if(!a||a.disabled)return;
+  const s0=a.selectionStart??a.value.length,s1=a.selectionEnd??s0;
+  a.setRangeText(ch,s0,s1,"end");a.focus();preview();sfx("key");
 }
 const pts=()=>{const d=hsd(S.open);return Math.max(100-10*d.h-5*d.w,10)+(cur().d==="b"?50:0)};
 const setH=(el,h)=>{if(el._h!==h){el._h=h;el.innerHTML=h}};
@@ -276,7 +296,9 @@ function puzzleHTML(P,i,modal){
   }
   else{
     const n=[].concat(P.a).length;
-    h+='<div class="row"><input id="ans" aria-label="Sua resposta" aria-describedby="fmt" placeholder="'+(n>1?"Ex.: "+Array.from({length:n},(_,k)=>k+1).join(","):"Ex.: 7 ou 1/2")+'" autocomplete="off" autocapitalize="off" spellcheck="false"'+(sv?" disabled":"")+'></div>'+
+    h+='<div class="row"><input id="ans" data-n="'+n+'" inputmode="decimal" aria-label="Sua resposta" aria-describedby="fmt pv" placeholder="'+(n>1?"Ex.: "+Array.from({length:n},(_,k)=>k+1).join(","):"Ex.: 7 ou 1/2")+'" autocomplete="off" autocapitalize="off" spellcheck="false"'+(sv?" disabled":"")+'></div>'+
+      (sv?"":'<div class="symbar" role="toolbar" aria-label="Símbolos para a resposta">'+[["-","−","sinal de menos"],["/","/","fração"],[";",";","ponto e vírgula"],[",",",","vírgula"]].map(b=>'<button type="button" class="btn sm sym" data-ins="'+b[0]+'" aria-label="'+b[2]+'">'+b[1]+"</button>").join("")+"</div>")+
+      '<p class="pv" id="pv" aria-live="polite"></p>'+
       '<p class="fmt" id="fmt">'+(n>1?"Resposta com "+n+" números separados por vírgula. Com decimais, use ponto (1.5) ou separe por ponto e vírgula: 2; 1,5.":"Decimais: 1.5 ou 1,5. Frações: 1/2.")+"</p>";
   }
   if(!sv)h+='<div class="row"><button class="btn stamp" id="chk">'+IC("search")+'Analisar resposta</button><button class="btn cyan" id="hb"'+(d.h>=2?" disabled":"")+">"+IC("bulb")+"Pedir dica (−"+HINT+" HP)</button>"+(modal?'<button class="btn" id="bk">'+IC("eye")+"Voltar à cena</button>":"")+"</div>";
@@ -291,7 +313,8 @@ function renderPuzzle(box,i,modal){
   if(!modal&&enter){const c=box.firstElementChild;if(c)c.classList.add("enter");enter=false}
   box.querySelectorAll(".opt").forEach(x=>x.onclick=()=>{S.sel=+x.dataset.k;sfx("key");save();render();const c=$("chk");if(c)c.focus()});
   const a=$("ans");
-  if(a){if(keep){a.value=keep;a.setSelectionRange(keep.length,keep.length)}a.oninput=()=>sfx("key");a.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();check()}};a.focus()}
+  box.querySelectorAll(".sym").forEach(b=>{b.onpointerdown=e=>e.preventDefault();b.onclick=()=>ins(b.dataset.ins)});
+  if(a){if(keep){a.value=keep;a.setSelectionRange(keep.length,keep.length)}a.oninput=()=>{sfx("key");preview()};preview();a.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();check()}};a.focus()}
   qk=key;
   if($("chk"))$("chk").onclick=check;
   if($("hb"))$("hb").onclick=hint;
