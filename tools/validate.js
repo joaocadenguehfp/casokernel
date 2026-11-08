@@ -13,9 +13,9 @@
 const fs=require("fs"),path=require("path"),vm=require("vm");
 const ROOT=path.join(__dirname,"..");
 const ctx={console};vm.createContext(ctx);
-vm.runInContext(["cases.js","scenes.js"].map(f=>fs.readFileSync(path.join(ROOT,f),"utf8")).join("\n;\n")+
-  "\n;this.SEEDS=SEEDS;this.FL=FL;this.SCENES=typeof SCENES!=='undefined'?SCENES:{};this.mkR=typeof mkR!=='undefined'?mkR:null;",ctx);
-const {SEEDS,FL,SCENES,mkR}=ctx;
+vm.runInContext(["cases.js","scenes.js","tools2d.js"].map(f=>fs.readFileSync(path.join(ROOT,f),"utf8")).join("\n;\n")+
+  "\n;this.SEEDS=SEEDS;this.FL=FL;this.SCENES=typeof SCENES!=='undefined'?SCENES:{};this.mkR=typeof mkR!=='undefined'?mkR:null;this.TOOLS2D=typeof TOOLS2D!=='undefined'?TOOLS2D:{};",ctx);
+const {SEEDS,FL,SCENES,mkR,TOOLS2D}=ctx;
 
 const errs=[],warns=[];
 const E=(w,m)=>errs.push(w+": "+m),W=(w,m)=>warns.push(w+": "+m);
@@ -172,6 +172,17 @@ const checkCase=(w,P,seedId,i)=>{
     const a=[].concat(P.a);
     if(!a.length||a.some(v=>!Number.isFinite(v)))E(w,"resposta numérica inválida: "+JSON.stringify(P.a));
   }else E(w,"type inválido: "+P.type);
+  /* ferramenta: o que ela alcança (pela grade de ímã) precisa ser a resposta */
+  if(P.tool!==undefined){
+    const T=TOOLS2D[P.tool];
+    if(!T)E(w,"ferramenta desconhecida: "+P.tool);
+    else if(typeof P.tp!=="function")E(w,"ferramenta sem tp");
+    else{let r;try{r=T.ans(P.tp(P))}catch(e){E(w,"ferramenta falhou: "+e.message)}
+      if(r!==undefined){
+        if(P.type==="choice"){if(P.o.indexOf(r)!==P.a)E(w,"a ferramenta "+P.tool+" chega em '"+r+"', não na alternativa certa")}
+        else{const a=[].concat(P.a);if(r.length!==a.length||r.some((x,k)=>!(Math.abs(x-a[k])<EPS)))E(w,"a ferramenta "+P.tool+" chega em "+JSON.stringify(r)+", não em "+JSON.stringify(a))}
+      }}
+  }
   const f=V[seedId+":"+i];
   if(!f){E(w,"sem verificação independente em tools/validate.js");return}
   let exp;try{exp=f(P)}catch(e){E(w,"verificação falhou: "+e.message);return}

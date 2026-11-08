@@ -97,7 +97,7 @@ const fmtAns=(a,dec)=>[].concat(a).map(v=>{
         await page.waitForFunction(n=>S.iq===n,q.iq+1);
       }
       if(scene&&await page.evaluate(()=>cur().d==="b"&&iqList().length&&S.iq<iqList().length))fail(sd.id+": chefão abriu sem interrogatório");
-      const P=await page.evaluate(()=>{const c=cur();return {type:c.type,a:c.a,o:c.o,i:S.open,hp:S.hp}});
+      const P=await page.evaluate(()=>{const c=cur();return {type:c.type,a:c.a,o:c.o,i:S.open,hp:S.hp,tool:c.tool||null}});
       const box=scene?"#pzb":"#game";
       if(!erred){ /* erra de propósito uma vez */
         if(P.type==="choice"){await page.locator(box+" .opt").nth((P.a+1)%P.o.length).click()}
@@ -114,7 +114,27 @@ const fmtAns=(a,dec)=>[].concat(a).map(v=>{
         if(await page.evaluate(()=>S.hp)>=hp0)fail(sd.id+": dica não custou HP");
         hinted=true;
       }
-      if(P.type==="choice"){await page.locator(box+" .opt").nth(P.a).click()}
+      if(P.tool&&scene){ /* ferramenta geométrica: interação real (teclado ou controle deslizante) e "Usar resultado" */
+        await page.click("#tlb");await page.waitForSelector("#tool svg");
+        const info=await page.evaluate(()=>{const P=cur(),tp=P.tp(P);return {k:P.tool,tgt:TOOLS2D[P.tool].ans(tp),st:JSON.parse(JSON.stringify(toolSt[qk])),tp}});
+        if(["det","orto","basis"].includes(info.k)){
+          const c0=info.k==="basis"?info.st.c:info.st.x,dx=info.tgt[0]-c0[0],dy=info.tgt[1]-c0[1];
+          await page.focus("#tool svg");
+          for(let j=0;j<Math.abs(dx);j++)await page.keyboard.press(dx>0?"ArrowRight":"ArrowLeft");
+          for(let j=0;j<Math.abs(dy);j++)await page.keyboard.press(dy>0?"ArrowUp":"ArrowDown");
+        }else if(info.k==="eigen"||info.k==="conic"){
+          const g=await page.evaluate(()=>{const P=cur(),st={};TOOLS2D[P.tool].solve(P.tp(P),st);return st.g});
+          await page.locator("#tang").fill(String(g));
+        }else await page.evaluate(()=>toolAuto());
+        await page.waitForSelector("#tuse:not([disabled])",{timeout:3000}).catch(()=>fail(sd.id+": ferramenta "+info.k+" não chegou ao alvo na fase "+P.i));
+        if(solved===0||info.k==="lsq")await shot(sd.id+"-ferramenta-"+info.k);
+        await page.click("#tuse");
+        if(P.type==="choice"){if(await page.evaluate(()=>S.sel)!==P.a)fail(sd.id+": ferramenta "+info.k+" escolheu a alternativa errada")}
+        else{const v=await page.evaluate(()=>{const a=cur().a;return parse($("ans").value,[].concat(a).length).v});
+          if(JSON.stringify(v)!==JSON.stringify([].concat(P.a)))fail(sd.id+": ferramenta "+info.k+" entregou "+JSON.stringify(v)+" em vez de "+JSON.stringify(P.a))}
+        report.push("  ferramenta "+info.k+" ("+sd.id+", fase "+P.i+"): ok");
+      }
+      else if(P.type==="choice"){await page.locator(box+" .opt").nth(P.a).click()}
       else{ /* alterna "3,1" e "3; 1" / vírgula decimal; no celular, símbolos pela barra */
         const txt=fmtAns(P.a,solved%2===1);
         if(MOBILE){

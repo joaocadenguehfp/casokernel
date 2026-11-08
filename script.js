@@ -306,6 +306,8 @@ function hsClick(k){
 function puzzleHTML(P,i,modal){
   const ta=!!S.ta,d=ta?{h:0,w:0}:hsd(i),b=P.d==="b"&&!ta,df=DIF[P.d],sv=!modal&&S.sv&&!ta,H=modal?scn().hotspots.find(x=>x.caso===i):null;
   let h='<div class="cs'+(b?" boss":"")+'">'+(b?'<div class="carimbo suspeito">Suspeito principal</div>':"")+'<div class="fase">'+IC(ta?"clock":modal?"pin":"folder")+(ta?"Time Attack · questão "+(S.ta.n+S.ta.w+1)+" · "+SEEDS[S.ta.q.s].nome:modal?H.nome+" · Pista "+(i+1)+" de "+N:"Fase "+(i+1)+" de "+N)+' <span class="dif d-'+P.d+'">'+df[0]+" "+df[1]+"</span></div><h2>"+IC("eye")+P.t+"</h2>"+(P.s?'<div class="story">'+M(P.s)+"</div>":"")+'<div class="q">'+IC("search")+M(P.q)+"</div>";
+  if(P.tool&&!ta&&!sv&&typeof TOOLS2D!=="undefined"&&TOOLS2D[P.tool])
+    h+='<div class="trow"><button type="button" class="btn cyan sm" id="tlb" aria-expanded="false" aria-controls="tool">'+IC("eye")+"Abrir ferramenta: "+TOOLS2D[P.tool].nome+'</button></div><div class="tool" id="tool" hidden></div>';
   if(P.type==="choice"){
     h+='<div class="opts" role="group" aria-label="Alternativas">'+P.o.map((o,k)=>'<button class="btn opt" data-k="'+k+'" aria-pressed="'+(S.sel===k)+'"'+(sv?" disabled":"")+">"+String.fromCharCode(65+k)+") "+M(o)+"</button>").join("")+"</div>";
     if(!sv)h+='<p class="keys">Atalhos: teclas A–D (ou 1–4) escolhem · Enter analisa'+(modal?" · Esc volta à cena":"")+"</p>";
@@ -338,12 +340,32 @@ function renderPuzzle(box,i,modal){
   box.querySelectorAll(".sym").forEach(b=>{b.onpointerdown=e=>e.preventDefault();b.onclick=()=>ins(b.dataset.ins)});
   if(a){if(keep){a.value=keep;a.setSelectionRange(keep.length,keep.length)}a.oninput=()=>{sfx("key");preview()};preview();a.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();check()}};a.focus()}
   qk=key;
+  if($("tlb"))bindTool(caseAt(i),key);
   if($("chk"))$("chk").onclick=check;
   if($("hb"))$("hb").onclick=hint;
   if($("bk"))$("bk").onclick=closePz;
   if($("rv"))$("rv").onclick=()=>{S.fc=S.open;save();render()};
   if($("nx"))$("nx").onclick=next;
 }
+
+/* ---- ferramentas geométricas (tools2d.js): estado por fase, sobrevive aos re-render ---- */
+const toolSt={};
+function bindTool(P,key){
+  const b=$("tlb"),el=$("tool"),st=toolSt[key]||(toolSt[key]={open:false});
+  const mount=()=>{
+    TOOLS2D[P.tool].ui(el,P.tp(P),st,v=>{
+      sfx("ok");
+      if(P.type==="choice"){S.sel=P.o.indexOf(v);save();render();const c=$("chk");if(c)c.focus();return}
+      const a=$("ans");a.value=[].concat(v).map(x=>String(Math.round(x*1e6)/1e6)).join(",");preview();
+      msg('<span class="good">'+IC("check")+"Resultado da ferramenta no campo de resposta. Confira e analise.</span>",1);$("chk").focus();
+    });
+  };
+  const show=on=>{st.open=on;el.hidden=!on;b.setAttribute("aria-expanded",on);b.innerHTML=IC("eye")+(on?"Fechar ferramenta":"Abrir ferramenta: "+TOOLS2D[P.tool].nome);if(on&&!el.firstChild)mount()};
+  b.onclick=()=>{sfx("key");show(!st.open);if(st.open){const sv=el.querySelector("svg");if(sv)sv.focus()}};
+  if(st.open)show(true);
+}
+/* teste de fumaça: leva a ferramenta ao alvo e remonta */
+function toolAuto(){const P=cur(),st=toolSt[qk];if(!P.tool||!st)return false;TOOLS2D[P.tool].solve(P.tp(P),st);$("tool").innerHTML="";st.open=false;$("tlb").click();return true}
 
 /* ---- interrogatório por contradição (antes do problema do chefão) ---- */
 let iqMsg="";

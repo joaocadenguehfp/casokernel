@@ -6,6 +6,8 @@
          type "choice" (o opções, a índice) ou "num" (a número ou lista)
          h 2 dicas | e explicação | k chave do flashcard em FL
    Matemática em $...$: mat(1,2;3,4) | RR | -> | x^2 | e_1
+   Ferramenta (opcional): tool:"tipo" (ver tools2d.js) e tp:P=>({parâmetros}); P é a fase já
+         sorteada. Fases fixas com ferramenta trazem p com os mesmos valores do enunciado.
    Sorteio (opcional): g:R=>({q,a,h,e,p}) gera uma versão nova a cada partida.
          R = gerador da partida (R.int(a,b), R.nz(a,b) sem zero, R.pick(lista)).
          p guarda os parâmetros para tools/validate.js recalcular a resposta.
@@ -69,7 +71,8 @@ const SEEDS=[
  type:"num",q:"Seja $T(x_1,x_2)=(x_1-x_2, x_1+x_2)$. Qual é a soma de todos os elementos da matriz canônica de $T$?",a:[2],k:"mat",
  h:["As colunas são $T(e_1)$ e $T(e_2)$.","$T(1,0)=(1,1)$ e $T(0,1)=(-1,1)$."],
  e:"$A=mat(1,-1;1,1)$, cuja soma é 1−1+1+1=2."},
-{d:"m",t:"Ponto cego",type:"num",q:"Qual é a nulidade de $T(x_1,x_2)=(x_1,0)$?",a:[1],k:"ker",
+{d:"m",t:"Ponto cego",
+ tool:"kernel",tp:()=>({A:[[1,0],[0,0]]}),type:"num",q:"Qual é a nulidade de $T(x_1,x_2)=(x_1,0)$?",a:[1],k:"ker",
  h:["Resolva $T(x)=0$: sobra $x_1=0$.","O núcleo é gerado por $(0,1)$."],
  e:"N(T)={(0,x₂)} tem dimensão 1 (e o posto também é 1)."},
 {d:"m",t:"Fora do campo",type:"num",q:"Qual é o posto de $T(x_1,x_2,x_3)=(x_1,x_2,0)$?",a:[2],k:"rank",
@@ -93,6 +96,7 @@ const SEEDS=[
  type:"num",q:"$T(x_1,x_2)=(x_1-x_2, x_1+x_2)$ é inversível. Calcule $T^{-1}(2,4)$.",a:[3,1],k:"inv",
  h:["Resolva $x_1-x_2=2$ e $x_1+x_2=4$.","Some as duas equações."],e:"x₁=3 e x₂=1."},
 {d:"d",t:"Cadeia de custódia",
+ tool:"compose",p:{v:[2,1]},tp:P=>({T:[[1,0],[0,-1]],S:[[1,-1],[1,1],[1,2]],v:P.p.v}),
  g:R=>{const v=[R.nz(-4,5),R.nz(-4,5)],t=[v[0],-v[1]],r=[t[0]-t[1],t[0]+t[1],t[0]+2*t[1]];
    return {p:{v},a:r,
     q:"$S(x_1,x_2)=(x_1-x_2, x_1+x_2, x_1+2x_2)$ e $T(x_1,x_2)=(x_1,-x_2)$. Calcule $ST"+tup(v)+"$.",
@@ -122,6 +126,7 @@ const SEEDS=[
 ]},
 {id:"fantasma",nome:"A Matriz Fantasma",ic:"👻",intro:"Matrizes de transformações, potências Aⁿ e operadores.",casos:[
 {d:"f",t:"A reflexão",
+ tool:"det",p:{y:[3,5]},tp:P=>({A:[[1,0],[0,-1]],y:P.p.y,show:"det"}),
  g:R=>{const y=[R.nz(-7,9),R.nz(-7,9)],x=[y[0],-y[1]];
    return {p:{y},a:x,q:"$T(x_1,x_2)=(x_1,-x_2)$ é inversível. Calcule $T^{-1}"+tup(y)+"$.",
     e:"T⁻¹=T, então T⁻¹"+ttup(y)+"="+ttup(x)+"."}},
@@ -141,6 +146,7 @@ const SEEDS=[
 {d:"m",t:"Derivando senos",type:"num",q:"Na base (sen x, cos x), as colunas da matriz de $D=d/dx$ são $D(sen x)$ e $D(cos x)$. Qual é o elemento (1,2)?",a:[-1],k:"mat",
  h:["$D(sen x)=cos x$ e $D(cos x)=-sen x$.","A coluna 2 é $(-1,0)$."],e:"$D=mat(0,-1;1,0)$. O elemento (1,2) é −1."},
 {d:"m",t:"Potências suspeitas",
+ tool:"power",p:{n:10},tp:P=>({A:[[1,1],[0,1]],n:P.p.n,e:[0,1]}),
  g:R=>{const n=R.int(5,25);
    return {p:{n},a:[n],q:"Seja $A=mat(1,1;0,1)$. Qual é o elemento (1,2) de $A^{"+n+"}$?",
     e:"Aⁿ=mat(1,n;0,1): o canto superior direito de A^"+n+" vale "+n+"."}},
@@ -215,7 +221,8 @@ const SEEDS=[
  h:["Calcule $TS(p)$ primeiro: $S(p)=2+3x$.","$TS(p)=2x+3x^2$. Aplique $TS$ de novo."],e:"TS(p)=2x+3x² e (TS)²(p)=TS(2x+3x²)=2x+3x², logo (0,2,3)."}
 ]},
 {id:"observatorio",nome:"O Observatório Quadrático",ic:"🔭",intro:"Autovalores, mudança de base, formas quadráticas, cônicas, quádricas e mínimos quadrados.",casos:[
-{d:"f",t:"A luneta apontada",type:"num",
+{d:"f",t:"A luneta apontada",
+ tool:"eigen",p:{A:[[2,1],[1,2]]},tp:P=>({A:P.p.A,v:[1,1]}),type:"num",
  g:R=>{const a=R.int(1,6),b=R.nz(-4,4),A=[[a,b],[b,a]],l=a+b;
    return {p:{A},a:[l],q:"$A=mat("+a+","+b+";"+b+","+a+")$ e $v=(1,1)$ é autovetor de $A$. Qual é o autovalor associado?",
     h:["Calcule $Av$.","$Av="+tup([l,l])+"$, um múltiplo de $v$."],e:"Av=("+neg(a)+"+("+neg(b)+"), "+neg(b)+"+("+neg(a)+"))="+ttup([l,l])+"="+neg(l)+"·v, logo λ="+neg(l)+"."}},
@@ -234,7 +241,8 @@ const SEEDS=[
     h:["$det(A-λI)="+charStr(r+s,r*s)+"$.","Fatore: $"+lfac(r)+lfac(s)+"$."],e:"tr A = "+neg(r+s)+" e det A = "+neg(r*s)+": as raízes de λ² − (tr A)λ + det A são "+neg(r)+" e "+neg(s)+"."}},
  q:"Quais são os autovalores de $mat(4,1;2,3)$, em ordem crescente?",a:[2,5],k:"charp",
  h:["$det(A-λI)=λ^2-7λ+10$.","Fatore: $(λ-2)(λ-5)$."],e:"tr A = 7 e det A = 10: λ²−7λ+10=(λ−2)(λ−5), autovalores 2 e 5."},
-{d:"m",t:"O mapa girado",type:"num",
+{d:"m",t:"O mapa girado",
+ tool:"basis",p:{v:[5,1]},tp:P=>({B:[[1,1],[1,-1]],v:P.p.v}),type:"num",
  g:R=>{const c=[R.nz(-4,6),R.nz(-4,6)],v=[c[0]+c[1],c[0]-c[1]];
    return {p:{v},a:c,q:"Quais são as coordenadas de $v="+tup(v)+"$ na base $B={(1,1),(1,-1)}$?",
     h:["Resolva $c_1(1,1)+c_2(1,-1)="+tup(v)+"$.","$c_1+c_2="+v[0]+"$ e $c_1-c_2="+v[1]+"$."],e:"c₁="+neg(c[0])+" e c₂="+neg(c[1])+": "+neg(c[0])+"(1,1)+("+neg(c[1])+")(1,−1)="+ttup(v)+"."}},
@@ -247,7 +255,8 @@ const SEEDS=[
     e:"("+a+"−λ)²="+b*b+" ⇒ λ="+neg(a-b)+" ou λ="+(a+b)+". Reais, como em toda hermitiana."}},
  q:"A matriz $H=mat(2,i;-i,2)$ é hermitiana. Quais são seus autovalores, em ordem crescente?",a:[1,3],k:"herm",
  h:["$det(H-λI)=(2-λ)^2-(i)(-i)=(2-λ)^2-1$.","Autovalores de matriz hermitiana são sempre reais."],e:"(2−λ)²=1 ⇒ λ=1 ou λ=3. Reais, como em toda hermitiana."},
-{d:"m",t:"O globo ortogonal",type:"num",
+{d:"m",t:"O globo ortogonal",
+ tool:"orto",p:{v:[1,2]},tp:P=>({A:[[0,-1],[1,0]],y:P.p.v,show:"len"}),type:"num",
  g:R=>{const v=[R.nz(-6,7),R.nz(-6,7)],x=[v[1],-v[0]];
    return {p:{v},a:x,q:"$Q=mat(0,-1;1,0)$ é ortogonal. Calcule $Q^{-1}"+tup(v)+"$.",e:"Q⁻¹"+ttup(v)+"=Qᵀ"+ttup(v)+"="+ttup(x)+"."}},
  q:"$Q=mat(0,-1;1,0)$ é ortogonal. Calcule $Q^{-1}(1,2)$.",a:[2,-1],k:"orto",
@@ -259,7 +268,8 @@ const SEEDS=[
     e:"$A=mat("+a+","+h+";"+h+","+a+")$: λ="+neg(l[0])+" e λ="+neg(l[1])+". Nos eixos principais, q="+(l[0]===1?"":neg(l[0]))+"x'²+"+(l[1]===1?"":l[1])+"y'²."}},
  q:"Quais são os autovalores da matriz simétrica da forma quadrática $q(x,y)=3x^2+4xy+3y^2$, em ordem crescente?",a:[1,5],k:"quad",
  h:["A matriz é $mat(3,2;2,3)$: o termo misto se divide ao meio.","$λ^2-6λ+5=0$."],e:"$A=mat(3,2;2,3)$, traço 6 e determinante 5: λ=1 e λ=5. Nos eixos principais, q=x'²+5y'²."},
-{d:"d",t:"A órbita inclinada",type:"choice",q:"Que cônica é $3x^2+4xy+3y^2=5$?",
+{d:"d",t:"A órbita inclinada",
+ tool:"conic",tp:()=>({Q:[[3,2],[2,3]],r:5}),type:"choice",q:"Que cônica é $3x^2+4xy+3y^2=5$?",
  o:["Elipse","Hipérbole","Parábola","Par de retas"],a:0,k:"conic",
  h:["Nos eixos principais, a equação vira $x'^2+5y'^2=5$.","Os dois autovalores são positivos, e o lado direito também."],
  e:"x'²+5y'²=5, ou x'²/5+y'²=1: uma elipse inclinada, com semieixos √5 e 1."},
@@ -267,7 +277,8 @@ const SEEDS=[
  o:["Elipsoide","Hiperboloide de uma folha","Hiperboloide de duas folhas","Cone"],a:1,k:"quadric",
  h:["Conte os sinais: dois positivos e um negativo.","Os cortes $z=c$ são círculos $x^2+y^2=1+c^2$, nunca vazios."],
  e:"Sinais (+,+,−) com lado direito positivo: todo corte horizontal é um círculo, e a superfície é conexa. Hiperboloide de uma folha."},
-{d:"b",t:"O astrônomo suspeito",type:"num",s:"Três observações, uma reta e um mentiroso. O suspeito ajustou os dados para sumir do céu; os mínimos quadrados o trazem de volta.",
+{d:"b",t:"O astrônomo suspeito",
+ tool:"lsq",p:{pts:[[-1,1],[0,1],[1,4]]},tp:P=>({pts:P.p.pts}),type:"num",s:"Três observações, uma reta e um mentiroso. O suspeito ajustou os dados para sumir do céu; os mínimos quadrados o trazem de volta.",
  g:R=>{let y;do{y=[R.int(0,8),R.int(0,8),R.int(0,8)]}while((y[0]+y[1]+y[2])%3||y[0]+y[2]===2*y[1]);
    const pts=[[-1,y[0]],[0,y[1]],[1,y[2]]],S=y[0]+y[1]+y[2],D=y[2]-y[0],c=[S/3,D/2];
    return {p:{pts},a:c,q:"Ajuste a reta $y=c_0+c_1x$ por mínimos quadrados aos pontos "+pts.map(q=>"$"+tup(q)+"$").join(", ").replace(/, ([^,]*)$/," e $1")+". Dê $(c_0,c_1)$.",
