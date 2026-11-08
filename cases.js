@@ -6,8 +6,9 @@
          type "choice" (o opções, a índice) ou "num" (a número ou lista)
          h 2 dicas | e explicação | k chave do flashcard em FL
    Matemática em $...$: mat(1,2;3,4) | RR | -> | x^2 | e_1
-   Ferramenta (opcional): tool:"tipo" (ver tools2d.js) e tp:P=>({parâmetros}); P é a fase já
+   Ferramenta (opcional): tool:"tipo" (ver tools2d.js e tools3d.js) e tp:P=>({parâmetros}); P é a fase já
          sorteada. Fases fixas com ferramenta trazem p com os mesmos valores do enunciado.
+         toolOpen:true abre a ferramenta junto com o problema.
    Sorteio (opcional): g:R=>({q,a,h,e,p}) gera uma versão nova a cada partida.
          R = gerador da partida (R.int(a,b), R.nz(a,b) sem zero, R.pick(lista)).
          p guarda os parâmetros para tools/validate.js recalcular a resposta.
@@ -75,7 +76,8 @@ const SEEDS=[
  tool:"kernel",tp:()=>({A:[[1,0],[0,0]]}),type:"num",q:"Qual é a nulidade de $T(x_1,x_2)=(x_1,0)$?",a:[1],k:"ker",
  h:["Resolva $T(x)=0$: sobra $x_1=0$.","O núcleo é gerado por $(0,1)$."],
  e:"N(T)={(0,x₂)} tem dimensão 1 (e o posto também é 1)."},
-{d:"m",t:"Fora do campo",type:"num",q:"Qual é o posto de $T(x_1,x_2,x_3)=(x_1,x_2,0)$?",a:[2],k:"rank",
+{d:"m",t:"Fora do campo",
+ tool:"image3d",tp:()=>({A:[[1,0,0],[0,1,0],[0,0,0]]}),type:"num",q:"Qual é o posto de $T(x_1,x_2,x_3)=(x_1,x_2,0)$?",a:[2],k:"rank",
  h:["A imagem é o plano $x_3=0$.","Posto = dimensão da imagem."],
  e:"Im(T)={(a,b,0)} tem dimensão 2; a nulidade é 1 e 2+1=3."},
 {d:"m",t:"Dois cofres",
@@ -112,7 +114,8 @@ const SEEDS=[
     e:"S(p)="+polyT(sp)+" e T(S(p))="+polyT(ts)+", logo "+ttup(ts)+". O termo "+neg(c[0])+" se perdeu: TS≠I."}},
  type:"num",q:"Para $p=c_0+c_1x+c_2x^2+c_3x^3$, $S(p)=c_1+c_2x+c_3x^2$ e $T(p)=c_0x+c_1x^2+c_2x^3+c_3x^4$. Com $p=2+3x-x^2+x^3$, dê os coeficientes $(c_0,c_1,c_2,c_3)$ de $TS(p)$.",a:[0,3,-1,1],k:"idop",
  h:["$S(p)=3-x+x^2$.","Aplique $T$: cada coeficiente sobe uma potência."],e:"S(p)=3−x+x² e T(S(p))=3x−x²+x³, logo (0,3,−1,1). TS≠I."},
-{d:"d",t:"Interrogatório cruzado",type:"num",q:"$S(x_1,x_2,x_3)=(x_1-x_2, x_2+x_3)$ e $T(x_1,x_2,x_3)=(x_3,x_2,x_1)$. Qual é a nulidade de $ST$?",a:[1],k:"rank",
+{d:"d",t:"Interrogatório cruzado",
+ tool:"kernel3d",tp:()=>({A:[[0,-1,1],[1,1,0]]}),type:"num",q:"$S(x_1,x_2,x_3)=(x_1-x_2, x_2+x_3)$ e $T(x_1,x_2,x_3)=(x_3,x_2,x_1)$. Qual é a nulidade de $ST$?",a:[1],k:"rank",
  h:["$ST(x)=(x_3-x_2, x_2+x_1)$.","Resolva $ST(x)=0$ e conte os parâmetros livres."],e:"x₃=x₂ e x₁=−x₂: núcleo gerado por (−1,1,1). Nulidade 1."},
 {d:"b",t:"O suspeito principal",
  g:R=>{const x=[R.int(1,9),R.int(1,9),R.int(1,9)],y=[3*x[2],2*x[1],x[0]];
@@ -189,7 +192,8 @@ const SEEDS=[
 {d:"f",t:"Três linhas",
  tool:"rref",tp:()=>({M:[[1,-1,0],[0,1,-1],[2,3,1]]}),type:"num",q:"Qual é a dimensão do espaço-linha de $A_1=(1,-1,0)$, $A_2=(0,1,-1)$ e $A_3=(2,3,1)$?",a:[3],k:"row",
  h:["Monte a matriz com esses vetores nas linhas.","O determinante vale 6, diferente de zero."],e:"As 3 linhas são LI (det=6), então a dimensão é 3."},
-{d:"m",t:"Imagem completa",type:"num",q:"$S(x_1,x_2)=(x_1-x_2, x_1+x_2, x_1+2x_2)$. Qual é o posto de $S$?",a:[2],k:"rank",
+{d:"m",t:"Imagem completa",
+ tool:"image3d",tp:()=>({A:[[1,-1],[1,1],[1,2]]}),type:"num",q:"$S(x_1,x_2)=(x_1-x_2, x_1+x_2, x_1+2x_2)$. Qual é o posto de $S$?",a:[2],k:"rank",
  h:["Resolva $S(x)=0$.","Só o vetor nulo vai a zero."],e:"N(S)={0}, nulidade 0 e posto 2−0=2."},
 {d:"m",t:"Quatro vetores",
  tool:"rref",tp:()=>({M:[[1,-1,2,1],[-1,2,-1,0],[3,-1,1,0],[1,0,0,1]]}),type:"num",q:"Qual é a dimensão do espaço-linha de $(1,-1,2,1)$, $(-1,2,-1,0)$, $(3,-1,1,0)$ e $(1,0,0,1)$?",a:[4],k:"row",
@@ -197,7 +201,8 @@ const SEEDS=[
 {d:"d",t:"Cinco vetores",
  tool:"rref",tp:()=>({M:[[1,0,0,0,1],[1,1,0,0,0],[1,0,1,0,1],[1,1,0,1,1],[0,1,0,1,0]]}),type:"num",q:"Qual é a dimensão do espaço-linha de $A_1=(1,0,0,0,1)$, $A_2=(1,1,0,0,0)$, $A_3=(1,0,1,0,1)$, $A_4=(1,1,0,1,1)$ e $A_5=(0,1,0,1,0)$?",a:[4],k:"row",
  h:["Procure uma relação entre os vetores.","$A_4-A_1=A_5$."],e:"A₅=A₄−A₁, então o conjunto é LD; os outros quatro são LI. Dimensão 4."},
-{d:"m",t:"Sem saída",type:"num",q:"Qual é a nulidade de $T(x_1,x_2,x_3)=(x_1+x_3, 0, x_1+x_2)$?",a:[1],k:"ker",
+{d:"m",t:"Sem saída",
+ tool:"kernel3d",tp:()=>({A:[[1,0,1],[0,0,0],[1,1,0]]}),type:"num",q:"Qual é a nulidade de $T(x_1,x_2,x_3)=(x_1+x_3, 0, x_1+x_2)$?",a:[1],k:"ker",
  h:["$x_1+x_3=0$ e $x_1+x_2=0$.","Há um parâmetro livre."],e:"O núcleo é gerado por (1,−1,−1): nulidade 1."},
 {d:"d",t:"Composição mortal",
  g:R=>{const v=[R.int(-4,5),R.int(-4,5),R.int(-4,5)],t=[v[0]+v[2],0,v[0]+v[1]],r=[t[0]-t[1],t[1]+t[2]];
@@ -276,7 +281,8 @@ const SEEDS=[
  o:["Elipse","Hipérbole","Parábola","Par de retas"],a:0,k:"conic",
  h:["Nos eixos principais, a equação vira $x'^2+5y'^2=5$.","Os dois autovalores são positivos, e o lado direito também."],
  e:"x'²+5y'²=5, ou x'²/5+y'²=1: uma elipse inclinada, com semieixos √5 e 1."},
-{d:"d",t:"A maquete de retas",type:"choice",q:"Que superfície é $x^2+y^2-z^2=1$?",
+{d:"d",t:"A maquete de retas",
+ tool:"quadric",toolOpen:true,tp:()=>({s:[1,1,-1]}),type:"choice",q:"Que superfície é $x^2+y^2-z^2=1$?",
  o:["Elipsoide","Hiperboloide de uma folha","Hiperboloide de duas folhas","Cone"],a:1,k:"quadric",
  h:["Conte os sinais: dois positivos e um negativo.","Os cortes $z=c$ são círculos $x^2+y^2=1+c^2$, nunca vazios."],
  e:"Sinais (+,+,−) com lado direito positivo: todo corte horizontal é um círculo, e a superfície é conexa. Hiperboloide de uma folha."},

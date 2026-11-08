@@ -326,6 +326,7 @@ function puzzleHTML(P,i,modal){
   return h;
 }
 function renderPuzzle(box,i,modal){
+  if(typeof V3!=="undefined")setTimeout(()=>V3.gc());   /* visualização 3D que saiu da tela libera a GPU */
   /* preserva o que foi digitado quando render() roda por dica/erro no mesmo problema */
   if(modal&&iqPending(i)){
     qk="";box.innerHTML=iqHTML(i);
@@ -351,7 +352,7 @@ function renderPuzzle(box,i,modal){
 /* ---- ferramentas geométricas (tools2d.js): estado por fase, sobrevive aos re-render ---- */
 const toolSt={};
 function bindTool(P,key){
-  const b=$("tlb"),el=$("tool"),st=toolSt[key]||(toolSt[key]={open:false});
+  const b=$("tlb"),el=$("tool"),st=toolSt[key]||(toolSt[key]={open:!!P.toolOpen});
   const mount=()=>{
     TOOLS2D[P.tool].ui(el,P.tp(P),st,v=>{
       sfx("ok");
@@ -360,7 +361,9 @@ function bindTool(P,key){
       msg('<span class="good">'+IC("check")+"Resultado da ferramenta no campo de resposta. Confira e analise.</span>",1);$("chk").focus();
     });
   };
-  const show=on=>{st.open=on;el.hidden=!on;b.setAttribute("aria-expanded",on);b.innerHTML=IC("eye")+(on?"Fechar ferramenta":"Abrir ferramenta: "+TOOLS2D[P.tool].nome);if(on&&!el.firstChild)mount()};
+  const show=on=>{
+    if(!on&&typeof V3!=="undefined"&&V3.active&&el.contains(V3.active.host)){V3.active.dispose();V3.active=null;el.innerHTML=""}   /* fecha: libera a GPU */
+    st.open=on;el.hidden=!on;b.setAttribute("aria-expanded",on);b.innerHTML=IC("eye")+(on?"Fechar ferramenta":"Abrir ferramenta: "+TOOLS2D[P.tool].nome);if(on&&!el.firstChild)mount()};
   b.onclick=()=>{sfx("key");show(!st.open);if(st.open){const sv=el.querySelector("svg");if(sv)sv.focus()}};
   if(st.open)show(true);
 }
@@ -470,7 +473,8 @@ function render(){
 
   /* qual modal deve estar aberto (o estado manda; recarregar a página restaura) */
   const want=(!sd||S.over||S.fin)?null:(S.fc!==null?"fc":(D&&S.open!==null?"pz":null));
-  ["pz","fc"].forEach(id=>{if($(id).classList.contains("on")&&want!==id)closeM(id,false)});
+  ["pz","fc"].forEach(id=>{if($(id).classList.contains("on")&&want!==id){closeM(id,false);
+    if(id==="pz"){$("pzb").innerHTML="";if(typeof V3!=="undefined")V3.gc()}}});   /* painel fechado: libera ferramentas e a GPU */
 
   const g=$("game");
   if(!sd){
@@ -521,7 +525,7 @@ function relic(k){
   if(scn()){const h=scn().hotspots.find(x=>x.caso===k);lastHS=k;flashOne(k);say("Detetive","Esta pista veio de: "+h.nome+".")}
   else{S.fc=k;save();render()}
 }
-function closePz(){S.open=null;S.sel=null;iqMsg="";save();render();backFocus()}
+function closePz(){S.open=null;S.sel=null;iqMsg="";save();render();backFocus();if(typeof V3!=="undefined")V3.gc()}
 function dismissFC(){if(scn())next();else{S.fc=null;save();render()}}
 function damage(n){
   if(!INV())S.hp=Math.max(0,S.hp-n);   /* Investigador: erros e dicas contam no resumo, mas não ferem */

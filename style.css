@@ -426,3 +426,19 @@ li.lk{--frame:linear-gradient(rgba(212,175,55,.35),rgba(212,175,55,.35));--ln:rg
 .rrc input{flex:none;width:6em;min-width:0}
 .rrh{margin:6px 0 0;padding-left:1.4em;display:block;color:var(--mut);font-size:.9rem;columns:2}
 .rrh li{list-style:decimal}
+
+/* ---------- Visualização 3D ---------- */
+.v3{position:relative;width:100%;max-width:520px;margin:6px auto;background:radial-gradient(circle at 50% 40%,#0d1a26,#05080c);border:1px solid var(--gold3);touch-action:none;cursor:grab;overflow:hidden}
+.v3:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+.v3 canvas{display:block;width:100%;height:auto}
+.v3.v3load{min-height:260px}
+.v3.v3load::after{content:"Carregando 3D…";position:absolute;inset:0;display:grid;place-items:center;color:var(--mut);font:600 1rem var(--ui)}
+.v3l{position:absolute;inset:0;pointer-events:none}
+.v3l .v3t{position:absolute;left:0;top:0;margin:-.7em 0 0 4px}
+.v3t{font:700 14px var(--ui);fill:#e5c158;color:#e5c158;text-shadow:0 0 4px #000,0 0 8px #000}
+.v3t.go{fill:#e5c158;color:#e5c158}.v3t.cy{fill:#9be7ff;color:#9be7ff}
+.v3svg svg{display:block;width:100%;height:auto}
+.v3note{margin:0;padding:6px 10px;font-size:.85rem;color:var(--mut)}
+.kst{gap:10px 18px}
+.kc{display:inline-flex;align-items:center;gap:6px}.kc output{min-width:2.2em;text-align:center;font:700 1.15rem var(--math);color:var(--cyan2)}.kc small{color:var(--mut)}
+.cards .btn[aria-pressed=true]{--frame:linear-gradient(135deg,#ffc27a,#ff7b00 45%,#a64600);--ln:#ff8f26;color:#ffd9b0}

@@ -13,7 +13,7 @@
 const fs=require("fs"),path=require("path"),vm=require("vm");
 const ROOT=path.join(__dirname,"..");
 const ctx={console};vm.createContext(ctx);
-vm.runInContext(["cases.js","scenes.js","tools2d.js"].map(f=>fs.readFileSync(path.join(ROOT,f),"utf8")).join("\n;\n")+
+vm.runInContext(["cases.js","scenes.js","tools2d.js","tools3d.js"].map(f=>fs.readFileSync(path.join(ROOT,f),"utf8")).join("\n;\n")+
   "\n;this.SEEDS=SEEDS;this.FL=FL;this.SCENES=typeof SCENES!=='undefined'?SCENES:{};this.mkR=typeof mkR!=='undefined'?mkR:null;this.TOOLS2D=typeof TOOLS2D!=='undefined'?TOOLS2D:{};",ctx);
 const {SEEDS,FL,SCENES,mkR,TOOLS2D}=ctx;
 

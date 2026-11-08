@@ -115,7 +115,8 @@ const fmtAns=(a,dec)=>[].concat(a).map(v=>{
         hinted=true;
       }
       if(P.tool&&scene){ /* ferramenta geométrica: interação real (teclado ou controle deslizante) e "Usar resultado" */
-        await page.click("#tlb");await page.waitForSelector("#tool #tuse");
+        if(await page.locator("#tool[hidden]").count())await page.click("#tlb");   /* toolOpen já abre sozinha */
+        await page.waitForSelector("#tool #tuse");
         const info=await page.evaluate(()=>{const P=cur(),tp=P.tp(P);return {k:P.tool,tgt:TOOLS2D[P.tool].ans(tp),st:JSON.parse(JSON.stringify(toolSt[qk])),tp}});
         if(["det","orto","basis"].includes(info.k)){
           const c0=info.k==="basis"?info.st.c:info.st.x,dx=info.tgt[0]-c0[0],dy=info.tgt[1]-c0[1];
@@ -129,9 +130,24 @@ const fmtAns=(a,dec)=>[].concat(a).map(v=>{
           for(let j=0;j<30&&await page.locator("#tuse[disabled]").count();j++){await page.click("#rsg");await page.click("#rap")}
           if(await page.evaluate(()=>toolSt[qk].hist.length)<1)fail(sd.id+": lupa sem operações aplicadas");
           await page.click("#rud");await page.click("#rsg");await page.click("#rap");   /* desfazer e refazer */
-        }else await page.evaluate(()=>toolAuto());
+        }else if(info.k==="image3d"){await page.click('#tool [data-d="'+info.tgt[0]+'"]')}
+        else if(info.k==="kernel3d"){
+          const k=await page.evaluate(()=>{const P=cur();return TOOLS2D.kernel3d.found(P.tp(P))[0]});
+          for(let c=0;c<3;c++){const d=k[c]-info.st.v[c];for(let j=0;j<Math.abs(d);j++)await page.click('#tool [data-k="'+c+'"][data-d="'+(d>0?1:-1)+'"]')}
+          await page.click("#tmark");
+        }else if(info.k==="quadric"){for(let c=0;c<3;c++)if(info.st.s[c]!==info.tp.s[c])await page.click('#tool [data-s="'+c+'"]')}
+        else await page.evaluate(()=>toolAuto());
+        if(["image3d","kernel3d","quadric"].includes(info.k)){ /* 3D: canvas (ou SVG), sem redesenho parado */
+          await page.waitForSelector("#tool .v3 canvas, #tool .v3 svg",{timeout:15000});
+          await page.waitForTimeout(400);const r0=await page.evaluate(()=>window.__r3d);await page.waitForTimeout(1000);
+          if(await page.evaluate(()=>window.__r3d)!==r0)fail(sd.id+": a cena 3D redesenha sem interação");
+          const mode=await page.evaluate(()=>document.querySelector("#tool .v3 canvas")?"webgl":"svg");
+          await page.locator("#tool .v3").dragTo(page.locator("#tool .v3"),{sourcePosition:{x:60,y:60},targetPosition:{x:160,y:90}});
+          if(await page.evaluate(()=>window.__r3d)===r0)fail(sd.id+": a cena 3D não redesenhou ao girar");
+          info.k+=" ["+mode+"]";
+        }
         await page.waitForSelector("#tuse:not([disabled])",{timeout:3000}).catch(()=>fail(sd.id+": ferramenta "+info.k+" não chegou ao alvo na fase "+P.i));
-        if(solved===0||info.k==="lsq"||info.k==="rref")await shot(sd.id+"-ferramenta-"+info.k);
+        if(solved===0||["lsq","rref","quadric","kernel3d","image3d"].includes(info.k.split(" ")[0]))await shot(sd.id+"-ferramenta-"+info.k);
         await page.click("#tuse");
         if(P.type==="choice"){if(await page.evaluate(()=>S.sel)!==P.a)fail(sd.id+": ferramenta "+info.k+" escolheu a alternativa errada")}
         else{const v=await page.evaluate(()=>{const a=cur().a;return parse($("ans").value,[].concat(a).length).v});
@@ -159,6 +175,7 @@ const fmtAns=(a,dec)=>[].concat(a).map(v=>{
       solved++;
       if(solved===1)await shot(sd.id+"-1-dossie");
       await page.click("#fcn");
+      if(P.tool&&scene&&await page.evaluate(()=>typeof V3!=="undefined"&&V3.active!==null))fail(sd.id+": visualização 3D não foi liberada ao fechar o painel");
       if(solved===5&&!reloaded){
         const before=await page.evaluate(()=>({n:S.solved.length,hp:S.hp,score:S.score}));
         await page.reload();
@@ -238,6 +255,18 @@ const fmtAns=(a,dec)=>[].concat(a).map(v=>{
   const want=[{v:[3,1]},{v:[2,1.5]},{v:[1.5]},{amb:true},{v:[.5]},{v:[-1,5]},{bad:true},{bad:true}];
   if(JSON.stringify(pr)!==JSON.stringify(want))fail("parser: "+JSON.stringify(pr));
   report.push("parser de respostas: ok");
+
+  /* 3D com movimento reduzido: cai na reserva em SVG */
+  {
+    const c2=await browser.newContext({viewport:{width:1280,height:900},reducedMotion:"reduce"}),p2=await c2.newPage();
+    p2.on("pageerror",e=>errors.push(e.message));
+    await p2.goto(URL0);
+    await p2.evaluate(()=>{S=Object.assign(fresh(),{seed:idxOf("observatorio"),rs:7,solved:[0,1,2,3,4,5,6],open:8,room:"mapas"});render()});
+    await p2.waitForSelector("#tool .v3 svg polyline",{timeout:5000}).catch(()=>fail("reserva SVG do 3D não apareceu com movimento reduzido"));
+    if(await p2.locator("#tool .v3 canvas").count())fail("movimento reduzido carregou WebGL");
+    await c2.close();
+  }
+  report.push("3D com movimento reduzido (SVG): ok");
 
   if(errors.length)fail("erros no console:\n  "+[...new Set(errors)].join("\n  "));
   await browser.close();server.close();
