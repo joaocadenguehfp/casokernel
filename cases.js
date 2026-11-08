@@ -1,6 +1,6 @@
 /* =====================================================================
    DADOS DO JOGO (edite aqui). Estrutura:
-   SEEDS[] -> {nome, ic, intro, casos[10]}
+   SEEDS[] -> {id (estável: usado no save e nos recordes), nome, ic, intro, casos[10]}
    Caso: d dificuldade ("f" fácil, "m" médio, "d" difícil, "b" chefão)
          t título | s narrativa (opcional) | q enunciado
          type "choice" (o opções, a índice) ou "num" (a número ou lista)
@@ -20,7 +20,7 @@ idop:{k:"Operadores D, integral e deslocamento",p:"DT=I não implica TD=I. Apliq
 };
 
 const SEEDS=[
-{nome:"O Cofre Vazio",ic:"🗝️",intro:"Linearidade, núcleo, composição e inversa.",casos:[
+{id:"cofre",nome:"O Cofre Vazio",ic:"🗝️",intro:"Linearidade, núcleo, composição e inversa.",casos:[
 {d:"f",t:"A cena do crime",type:"choice",q:"Qual função $T:RR^2->RR^2$ é linear?",
  o:["$T(x_1,x_2)=(x_2,x_1)$","$T(x_1,x_2)=(x_1,1)$","$T(x_1,x_2)=(x_1+1,x_2+2)$","$T(x_1,x_2)=(x_1^2,x_2^2)$"],a:0,k:"lin",
  h:["Uma transformação linear leva $(0,0)$ em $(0,0)$.","Termos quadráticos quebram a soma."],
@@ -48,7 +48,7 @@ const SEEDS=[
  q:"$T(x_1,x_2,x_3)=(x_1,2x_2,3x_3)$ e $S(x_1,x_2,x_3)=(x_3,x_2,x_1)$. Sabendo que $ST$ é inversível, calcule $(ST)^{-1}(3,4,9)$.",a:[9,2,1],k:"inv",
  h:["$ST(x)=(3x_3, 2x_2, x_1)$.","Iguale a $(3,4,9)$ e resolva coordenada a coordenada."],e:"ST(x)=(3x₃,2x₂,x₁)=(3,4,9) ⇒ x=(9,2,1)."}
 ]},
-{nome:"A Matriz Fantasma",ic:"👻",intro:"Matrizes de transformações, potências Aⁿ e operadores.",casos:[
+{id:"fantasma",nome:"A Matriz Fantasma",ic:"👻",intro:"Matrizes de transformações, potências Aⁿ e operadores.",casos:[
 {d:"f",t:"A reflexão",type:"num",q:"$T(x_1,x_2)=(x_1,-x_2)$ é inversível. Calcule $T^{-1}(3,5)$.",a:[3,-5],k:"inv",
  h:["Aplicar a reflexão duas vezes devolve o vetor.","Logo $T^{-1}=T$."],e:"T⁻¹=T, então T⁻¹(3,5)=(3,−5)."},
 {d:"f",t:"Dimensões da ficha",type:"choice",q:"Qual é a ordem (linhas × colunas) da matriz canônica de $T:RR^3->RR^2$, $T(x_1,x_2,x_3)=(x_1,x_2)$?",
@@ -74,7 +74,7 @@ const SEEDS=[
  q:"$T(x_1,x_2,x_3)=(x_1+x_2, x_2+x_3, x_3)$ tem matriz $mat(1,1,0;0,1,1;0,0,1)$. Calcule $T^{-1}(1,2,3)$.",a:[2,-1,3],k:"inv",
  h:["Resolva de baixo para cima: $x_3=y_3$.","Depois $x_2=y_2-x_3$ e $x_1=y_1-x_2$."],e:"x₃=3, x₂=2−3=−1 e x₁=1−(−1)=2."}
 ]},
-{nome:"A Dependência Letal",ic:"🧬",intro:"Espaço-linha, dependência linear, posto e composição.",casos:[
+{id:"dependencia",nome:"A Dependência Letal",ic:"🧬",intro:"Espaço-linha, dependência linear, posto e composição.",casos:[
 {d:"f",t:"Dedo apontado",type:"choice",q:"Qual função NÃO é linear?",
  o:["$T(x_1,x_2)=(x_1,x_1)$","$T(x_1,x_2)=(x_1,0)$","$T(x_1,x_2)=(e^{x_1},e^{x_2})$","$T(x_1,x_2)=(x_1-x_2,x_1+x_2)$"],a:2,k:"lin",
  h:["Teste $T(0,0)$.","Lembre que $e^0=1$."],e:"T(0,0)=(1,1)≠(0,0)."},

@@ -1,6 +1,6 @@
 /* =====================================================================
    CENAS POINT AND CLICK (edite aqui). Carregado depois de cases.js.
-   SCENES[indiceDoCaso] = cena do caso, ou null/ausente = modo linear (fallback).
+   SCENES[idDoCaso] = cena do caso (id de SEEDS em cases.js); ausente = modo linear (fallback).
    Cena: { intro, salas:[{id,nome,svg}], hotspots:[...], final:{titulo,texto,fala} }
    Hotspot: { caso (0-9, índice da fase em cases.js), sala (id), nome,
               x,y,w,h (em % da cena; use box(px) numa arte 1600x900),
@@ -134,8 +134,8 @@ const SALA_COFRE=`<svg class="art" viewBox="0 0 1600 900" aria-hidden="true" foc
 <rect width="1600" height="900" fill="url(#kVig)"/>
 </svg>`;
 
-const SCENES=[
-{
+const SCENES={
+cofre:{
   intro:"O cofre está vazio e o ladrão deixou tudo arrumado demais. Vamos ver o que cada objeto confessa.",
   salas:[{id:"escritorio",nome:"Escritório do cofre arrombado",svg:SALA_COFRE}],
   hotspots:[
@@ -189,7 +189,5 @@ const SCENES=[
     texto:"O retrato girou e mostrou o rosto de quem esvaziou o cofre. Cada conta fechou um elo, e a inversa da composição entregou o nome. Caso arquivado.",
     fala:"Nada some de verdade: só muda de lugar. E toda transformação deixa um núcleo para quem sabe olhar."
   }
-},
-null,   /* A Matriz Fantasma: modo linear (adicione uma cena aqui) */
-null    /* A Dependência Letal: modo linear (adicione uma cena aqui) */
-];
+}
+};

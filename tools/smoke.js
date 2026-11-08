@@ -1,0 +1,149 @@
+#!/usr/bin/env node
+/* =====================================================================
+   Teste de fumaça (Playwright):  node tools/smoke.js [--shots pasta] [--mobile]
+   Para cada caso: escolhe o caso, erra uma vez (perde HP), pede uma dica,
+   resolve todas as fases pela cena (ou no modo linear), recarrega no meio
+   para conferir que o estado volta, e confere a tela final.
+   Também falha se houver erro no console e mede tarefas longas (>50 ms).
+   Requer o pacote playwright com o Chromium (npm i -D playwright && npx playwright install chromium).
+   ===================================================================== */
+"use strict";
+const http=require("http"),fs=require("fs"),path=require("path");
+const {chromium,devices}=require("playwright");
+const ROOT=path.join(__dirname,"..");
+const arg=k=>{const i=process.argv.indexOf(k);return i<0?null:(process.argv[i+1]||true)};
+const SHOTS=arg("--shots"),MOBILE=!!arg("--mobile"),ONLY=arg("--case");
+const TYPES={".html":"text/html",".js":"text/javascript",".css":"text/css",".woff2":"font/woff2",".png":"image/png",".json":"application/json",".svg":"image/svg+xml"};
+
+const server=http.createServer((q,r)=>{
+  let f=decodeURIComponent(new URL(q.url,"http://x").pathname);if(f==="/")f="/index.html";
+  const p=path.join(ROOT,f);
+  if(!p.startsWith(ROOT)||!fs.existsSync(p)||fs.statSync(p).isDirectory()){r.writeHead(404);r.end();return}
+  r.writeHead(200,{"Content-Type":TYPES[path.extname(p)]||"application/octet-stream"});fs.createReadStream(p).pipe(r);
+});
+
+const fail=m=>{throw new Error(m)};
+const fmtAns=(a,dec)=>[].concat(a).map(v=>{
+  if(Number.isInteger(v))return String(v);
+  const s=String(+v.toFixed(6));return dec?s.replace(".",","):s;
+}).join(dec?"; ":",");
+
+(async()=>{
+  await new Promise(r=>server.listen(0,r));
+  const URL0="http://127.0.0.1:"+server.address().port+"/";
+  const browser=await chromium.launch();
+  const ctx=await browser.newContext(MOBILE?devices["Pixel 7"]:{viewport:{width:1280,height:900}});
+  /* sem fontes externas no teste: não depende da rede */
+  await ctx.route(/fonts\.(googleapis|gstatic)\.com/,r=>r.abort());
+  await ctx.addInitScript(()=>{
+    window.__long=[];
+    try{new PerformanceObserver(l=>l.getEntries().forEach(e=>window.__long.push(Math.round(e.duration)))).observe({type:"longtask",buffered:true})}catch(e){}
+  });
+  const page=await ctx.newPage();
+  const errors=[];
+  page.on("pageerror",e=>errors.push(e.message));
+  page.on("console",m=>{if(m.type()==="error"&&!/fonts\.|ERR_FAILED|net::/.test(m.text()))errors.push(m.text())});
+  const shot=async n=>{if(SHOTS){fs.mkdirSync(SHOTS,{recursive:true});await page.screenshot({path:path.join(SHOTS,n+".png")})}};
+
+  /* o jogo salva no pagehide; para começar limpo, bloqueia gravações antes de recarregar */
+  const wipe=async seed=>{
+    await page.evaluate(seed=>{const set=Storage.prototype.setItem;localStorage.clear();
+      for(const k in seed||{})set.call(localStorage,k,seed[k]);Storage.prototype.setItem=function(){}},seed||null);
+    await page.reload();
+  };
+  await page.goto(URL0);
+  await wipe();
+  const seeds=await page.evaluate(()=>SEEDS.map(s=>({id:s.id,nome:s.nome})));
+  const report=[];
+
+  for(let k=0;k<seeds.length;k++){
+    const sd=seeds[k];
+    if(ONLY&&ONLY!==sd.id)continue;
+    await wipe();
+    await page.evaluate(()=>{window.__long.length=0});
+    await page.locator(".seedc").nth(k).click();
+    const scene=await page.evaluate(()=>!!scn());
+    await page.waitForSelector(scene?"#scene":"#game .cs");
+    const openLong=await page.evaluate(()=>Math.max(0,...window.__long));
+    await shot(sd.id+"-0-inicio");
+    let solved=0,erred=false,hinted=false,reloaded=false,guard=0;
+    while(solved<10){
+      if(++guard>60)fail(sd.id+": laço sem progresso");
+      if(scene){
+        /* troca de sala se não houver hotspot disponível nesta */
+        if(!(await page.locator(".hs.av").count())){
+          const rooms=page.locator("[data-room]:not([aria-pressed=true])");
+          if(!(await rooms.count()))fail(sd.id+": nenhum hotspot disponível e nenhuma outra sala");
+          let found=false;
+          for(let r=0;r<await rooms.count()&&!found;r++){await rooms.nth(r).click();found=(await page.locator(".hs.av").count())>0}
+          if(!found)fail(sd.id+": nenhum hotspot disponível em nenhuma sala");
+        }
+        await page.locator(".hs.av").first().click();
+        await page.waitForSelector("#pz.on");
+      }
+      const P=await page.evaluate(()=>{const c=cur();return {type:c.type,a:c.a,o:c.o,i:S.open,hp:S.hp}});
+      const box=scene?"#pzb":"#game";
+      if(!erred){ /* erra de propósito uma vez */
+        if(P.type==="choice"){await page.locator(box+" .opt").nth((P.a+1)%P.o.length).click()}
+        else await page.fill("#ans","999");
+        await page.click("#chk");
+        const hp=await page.evaluate(()=>S.hp);
+        const HIT=await page.evaluate(()=>HIT);
+        if(hp!==P.hp-HIT)fail(sd.id+": erro deveria custar "+HIT+" HP ("+P.hp+" -> "+hp+")");
+        erred=true;
+      }
+      if(!hinted){
+        const hp0=await page.evaluate(()=>S.hp);await page.click("#hb");
+        if(!(await page.locator(box+" .hint").count()))fail(sd.id+": dica não apareceu");
+        if(await page.evaluate(()=>S.hp)>=hp0)fail(sd.id+": dica não custou HP");
+        hinted=true;
+      }
+      if(P.type==="choice"){await page.locator(box+" .opt").nth(P.a).click()}
+      else await page.fill("#ans",fmtAns(P.a,solved%2===1));   /* alterna "3,1" e "3; 1" / vírgula decimal */
+      await page.click("#chk");
+      await page.waitForSelector("#fc.on",{timeout:3000}).catch(async()=>{
+        const fb=await page.locator("#fb").innerText().catch(()=>"");
+        fail(sd.id+": resposta certa não foi aceita na fase "+P.i+" ("+fmtAns(P.a,solved%2===1)+") "+fb);
+      });
+      solved++;
+      if(solved===1)await shot(sd.id+"-1-dossie");
+      await page.click("#fcn");
+      if(solved===5&&!reloaded){
+        const before=await page.evaluate(()=>({n:S.solved.length,hp:S.hp,score:S.score}));
+        await page.reload();
+        await page.waitForSelector(scene?"#scene":"#game .cs");
+        const after=await page.evaluate(()=>({n:S.solved.length,hp:S.hp,score:S.score}));
+        if(JSON.stringify(before)!==JSON.stringify(after))fail(sd.id+": estado não voltou após recarregar "+JSON.stringify([before,after]));
+        reloaded=true;
+        await shot(sd.id+"-2-meio");
+      }
+    }
+    await page.waitForSelector("#ov.on");
+    const ovp=await page.locator("#ovp").innerText();
+    if(!ovp.includes(sd.nome))fail(sd.id+": aviso final sem o nome do caso");
+    await page.click("#ovb");
+    const fim=await page.locator(".fim").innerText();
+    if(!/Caso resolvido/.test(fim))fail(sd.id+": tela final ausente");
+    await shot(sd.id+"-3-final");
+    const st=await page.evaluate(()=>({hp:S.hp,score:S.score,fin:S.fin,best:JSON.parse(localStorage.getItem(BKEY))}));
+    if(!st.fin||st.best[sd.id]==null)fail(sd.id+": recorde não foi salvo");
+    report.push(sd.id+": ok ("+(scene?"cena":"linear")+", "+st.score+" pts, "+st.hp+" HP, maior tarefa ao abrir: "+openLong+" ms)");
+  }
+
+  /* migração do save v4 (seed = índice) e dos recordes antigos */
+  await wipe({"caso-kernel-v4":JSON.stringify({seed:1,hp:70,score:200,solved:[0,1],hs:{},open:null,room:null,snd:true,t:5000}),
+    "caso-kernel-best":JSON.stringify({0:12000,2:9000})});
+  const mig=await page.evaluate(()=>({id:SID[S.seed],hp:S.hp,n:S.solved.length,best:loadBest()}));
+  if(mig.id!=="fantasma"||mig.hp!==70||mig.n!==2||mig.best.cofre!==12000||mig.best.dependencia!==9000)fail("migração v4 -> v5 falhou: "+JSON.stringify(mig));
+  report.push("migração v4 -> v5: ok");
+
+  /* parser de respostas */
+  const pr=await page.evaluate(()=>[parse("3,1",2),parse("2; 1,5",2),parse("1,5",1),parse("2,1,5",2),parse("1/2",1),parse("(−1, 5)",2),parse("abc",1),parse("1/0",1)]);
+  const want=[{v:[3,1]},{v:[2,1.5]},{v:[1.5]},{amb:true},{v:[.5]},{v:[-1,5]},{bad:true},{bad:true}];
+  if(JSON.stringify(pr)!==JSON.stringify(want))fail("parser: "+JSON.stringify(pr));
+  report.push("parser de respostas: ok");
+
+  if(errors.length)fail("erros no console:\n  "+[...new Set(errors)].join("\n  "));
+  await browser.close();server.close();
+  console.log(report.join("\n")+"\n\nTeste de fumaça passou"+(MOBILE?" (mobile)":"")+".");
+})().catch(async e=>{console.error("FALHOU: "+e.message);process.exit(1)});

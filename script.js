@@ -4,18 +4,30 @@
    - Casos com cena em SCENES (scenes.js): exploração + painel de problema.
    - Casos sem cena: modo linear (fallback), igual ao jogo anterior.
    ===================================================================== */
-const KEY="caso-kernel-v4",OLDKEY="caso-kernel-v3",BKEY="caso-kernel-best",MAXHP=100,HIT=10,HINT=20,HEAL=10,N=10;
+const KEY="caso-kernel-v5",V4KEY="caso-kernel-v4",V3KEY="caso-kernel-v3",BKEY="caso-kernel-best-v2",OLDBKEY="caso-kernel-best",
+  MAXHP=100,HIT=10,HINT=20,HEAL=10,N=10;
 const $=id=>document.getElementById(id);
 const IC=n=>'<svg class="ic" aria-hidden="true" focusable="false"><use href="#i-'+n+'"/></svg>';
 const DIF={f:["◆","Fácil"],m:["◆","Médio"],d:["◆","Difícil"],b:["◆","Chefão"]};
-const SCN=typeof SCENES!=="undefined"?SCENES:[];
+const SCN=typeof SCENES!=="undefined"?SCENES:{};
+const DEBUG=/[?&]debug=1(&|$)/.test(location.search);   /* ?debug=1: caixas dos hotspots e coordenadas */
+if(DEBUG)document.documentElement.classList.add("dbg");
 
-/* ============ ESTADO E PERSISTÊNCIA (v4) ============ */
+/* ============ CASOS E CENAS POR ID ============ */
+/* O estado usa o índice do caso em SEEDS; o save e os recordes usam o id estável. */
+const SID=SEEDS.map(s=>s.id);
+const LEGACY=["cofre","fantasma","dependencia"];   /* ordem dos casos até o save v4 (seed = índice) */
+const idxOf=id=>{const k=SID.indexOf(id);return k<0?null:k};
+const hasScene=i=>i!==null&&i!==undefined&&!!SCN[SID[i]];
+const scCache={};
+const sceneAt=i=>{if(!hasScene(i))return null;const id=SID[i];return scCache[id]||(scCache[id]=typeof SCN[id]==="function"?SCN[id]():SCN[id])};
+
+/* ============ ESTADO E PERSISTÊNCIA (v5) ============ */
 /* solved: fases resolvidas | hs: {fase:{h:dicas,w:erros}} | open: fase com painel aberto
    fc: dossiê aberto | sv/last: só no modo linear (feedback "Acertou") | room: sala atual */
 const fresh=()=>({seed:null,hp:MAXHP,score:0,solved:[],hs:{},open:null,sv:false,sel:null,fc:null,last:0,room:null,snd:true,over:false,fin:false,t:0});
 const rdj=k=>{try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}};
-const sceneOf=s=>s.seed===null?null:(SCN[s.seed]||null);
+const sceneOf=s=>sceneAt(s.seed);
 const isAv=(s,i)=>{
   const D=sceneOf(s);
   if(D){const h=D.hotspots.find(x=>x.caso===i);return !!h&&(h.requires||[]).every(r=>s.solved.includes(r))}
@@ -25,14 +37,23 @@ const isAv=(s,i)=>{
 const firstUn=s=>{for(let i=0;i<N;i++)if(!s.solved.includes(i))return i;return null};
 
 function load(){
-  const s=fresh(),v4=rdj(KEY),v3=rdj(OLDKEY);
-  if(v4&&typeof v4==="object")Object.assign(s,v4);
-  else if(v3&&typeof v3==="object"){ /* migração v3 -> v4: aproveita o que dá */
-    ["seed","hp","score","snd","t","over","fin"].forEach(k=>{if(k in v3)s[k]=v3[k]});
-    s.solved=Array.isArray(v3.clues)?v3.clues:[];
-    s.sv=!!v3.sv;s.open=(!SCN[v3.seed]&&Number.isInteger(v3.i))?v3.i:null;   /* cena: volta a explorar */
+  const s=fresh(),v5=rdj(KEY);
+  if(v5&&typeof v5==="object"){Object.assign(s,v5);s.seed=typeof v5.seed==="string"?idxOf(v5.seed):null;return s}
+  /* migração v4/v3 -> v5: seed era o índice na ordem antiga (LEGACY) */
+  const v4=rdj(V4KEY),v3=rdj(V3KEY),old=k=>Number.isInteger(k)&&LEGACY[k]?idxOf(LEGACY[k]):null;
+  if(v4&&typeof v4==="object"){Object.assign(s,v4);s.seed=old(v4.seed)}
+  else if(v3&&typeof v3==="object"){
+    ["hp","score","snd","t","over","fin"].forEach(k=>{if(k in v3)s[k]=v3[k]});
+    s.seed=old(v3.seed);s.solved=Array.isArray(v3.clues)?v3.clues:[];
+    s.sv=!!v3.sv;s.open=(!hasScene(s.seed)&&Number.isInteger(v3.i))?v3.i:null;   /* cena: volta a explorar */
   }
   return s;
+}
+function loadBest(){
+  const b=rdj(BKEY);if(b&&typeof b==="object")return Object.assign({},b);
+  const o=rdj(OLDBKEY),r={};   /* recordes antigos: chave = índice LEGACY */
+  if(o&&typeof o==="object")for(const k in o){const id=LEGACY[+k];if(id&&Number.isFinite(o[k]))r[id]=o[k]}
+  return r;
 }
 function sanitize(s){
   const base=Object.assign(fresh(),{snd:s.snd!==false});
@@ -44,7 +65,7 @@ function sanitize(s){
   const hs={};
   if(s.hs&&typeof s.hs==="object")for(const k in s.hs){const e=s.hs[k];if(I(+k)&&e)hs[k]={h:n(e.h,0,2,0),w:n(e.w,0,999,0)}}
   r.hs=hs;
-  const D=SCN[s.seed]||null;
+  const D=sceneAt(s.seed);
   r.room=D?(D.salas.find(x=>x.id===s.room)||D.salas[0]).id:null;
   if(r.over||r.fin)return r;
   r.fc=I(s.fc)&&r.solved.includes(s.fc)?s.fc:null;
@@ -57,9 +78,13 @@ function sanitize(s){
   }
   return r;
 }
-let S=sanitize(load()),best=Object.assign({},rdj(BKEY)||{}),tk=Date.now(),qk="",enter=false;
-const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S));localStorage.setItem(BKEY,JSON.stringify(best))}catch(e){}};
-const scn=()=>S.seed===null?null:(SCN[S.seed]||null);
+let S=sanitize(load()),best=loadBest(),tk=Date.now(),qk="",enter=false;
+const save=()=>{try{
+  localStorage.setItem(KEY,JSON.stringify(Object.assign({},S,{seed:S.seed===null?null:SID[S.seed]})));
+  localStorage.setItem(BKEY,JSON.stringify(best));
+}catch(e){}};
+const scn=()=>sceneAt(S.seed);
+const bestOf=i=>best[SID[i]];
 const cur=()=>SEEDS[S.seed].casos[S.open];
 const hsd=i=>S.hs[i]||(S.hs[i]={h:0,w:0});
 const fmt=ms=>{const s=Math.floor(ms/1000);return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0")};
@@ -124,7 +149,27 @@ function closeM(id,back){
 const backFocus=()=>{const el=lastHS!==null&&$("hs"+lastHS);if(el)el.focus()};
 
 /* ============ LÓGICA ============ */
-const parse=v=>v.replace(/[−–]/g,"-").replace(/[()\s]/g,"").split(/[;,]/).filter(Boolean).map(p=>{if(p.includes("/")){const[a,b]=p.split("/");return +a/+b}return +p});
+/* Resposta numérica com n componentes. Separadores: "," ou ";". Decimal: "1.5" ou "1,5".
+   Vírgula decimal com vários componentes exige ";" entre eles ("2; 1,5"). Frações: "1/2".
+   Retorna {v:[números]} | {amb:true} (vírgulas demais, provável decimal) | {bad:true}. */
+const num=p=>{
+  if(/^[-+]?(\d+\.?\d*|\.\d+)\/[-+]?(\d+\.?\d*|\.\d+)$/.test(p)){const[a,b]=p.split("/");return +b===0?NaN:+a/+b}
+  return /^[-+]?(\d+\.?\d*|\.\d+)$/.test(p)?+p:NaN;
+};
+function parse(v,n){
+  v=v.replace(/[−–]/g,"-").replace(/[()\s]/g,"");
+  let p;
+  if(v.includes(";"))p=v.split(";").filter(Boolean).map(x=>x.replace(",","."));
+  else{
+    p=v.split(",").filter(Boolean);
+    if(p.length!==n){
+      if(n===1&&p.length===2)p=[p.join(".")];               /* uma resposta só: "1,5" = 1.5 */
+      else if(p.length>n&&p.length<=2*n)return {amb:true};  /* "2,1,5" para (2; 1,5)? */
+    }
+  }
+  const r=p.map(num);
+  return !r.length||r.some(isNaN)?{bad:true}:{v:r};
+}
 const pts=()=>{const d=hsd(S.open);return Math.max(100-10*d.h-5*d.w,10)+(cur().d==="b"?50:0)};
 const anim=(id,cls)=>{const el=$(id);el.classList.remove(cls);void el.offsetWidth;el.classList.add(cls)};
 const nextLabel=()=>S.solved.length>=N?IC("trophy")+"Encerrar caso":(scn()?IC("search")+"Continuar investigação":IC("folder")+"Próxima fase");
@@ -135,8 +180,10 @@ function paintDlg(){const d=$("dlg");if(d)d.innerHTML='<span class="who">'+dlgWh
 function say(who,txt){dlgWho=who;dlgTxt=txt;paintDlg()}
 
 /* ---- cena ---- */
+const px=v=>Math.round(v*100)/100;
 function hsHTML(h){
-  return '<button class="hs" id="hs'+h.caso+'" data-k="'+h.caso+'" style="left:'+h.x+"%;top:"+h.y+"%;width:"+h.w+"%;height:"+h.h+'%"><span class="mk"></span><span class="hl">'+h.nome+"</span></button>";
+  const dbg=DEBUG?' data-box="#'+h.caso+" "+px(h.x*16)+","+px(h.y*9)+" "+px(h.w*16)+"×"+px(h.h*9)+'"':"";
+  return '<button class="hs" id="hs'+h.caso+'" data-k="'+h.caso+'"'+dbg+' style="left:'+h.x+"%;top:"+h.y+"%;width:"+h.w+"%;height:"+h.h+'%"><span class="mk"></span><span class="hl">'+h.nome+"</span></button>";
 }
 function buildScene(final){
   const D=scn(),room=D.salas.find(r=>r.id===S.room)||D.salas[0],g=$("game");
@@ -145,9 +192,10 @@ function buildScene(final){
   if(!final)h+='<button class="btn sm" id="hlt">'+IC("search")+'<span class="t">Destacar objetos</span><kbd>H</kbd></button>';
   h+='</div><div class="scenewrap" id="sw"><div class="scene'+(final?" final":"")+'" id="scene" data-key="'+S.seed+":"+room.id+":"+(final?"f":"p")+'">'+room.svg;
   if(!final)h+=D.hotspots.filter(x=>x.sala===room.id).map(hsHTML).join("");
+  if(DEBUG)h+='<output class="dbgxy" id="dbgxy">x, y</output>';
   h+='</div></div><p class="keys pan">Arraste a cena para os lados para explorar.</p><div class="dlg" id="dlg" role="status" aria-live="polite"></div>';
   if(final){
-    h+='<div class="fim"><h2>'+IC("trophy")+'Caso resolvido</h2><div class="carimbo v">Arquivado</div><p class="story">'+D.final.texto+"</p><p><b>"+SEEDS[S.seed].nome+"</b><br>"+IC("medal")+"Pontuação: <b>"+S.score+"</b> · "+IC("heart")+"Vida: "+S.hp+"/"+MAXHP+"<br>"+IC("clock")+"Tempo total: <b>"+fmt(S.t)+"</b> · "+IC("flag")+"Melhor: "+fmt(best[S.seed])+'</p><button class="btn stamp" id="again">'+IC("folder")+"Escolher outro caso</button></div>";
+    h+='<div class="fim"><h2>'+IC("trophy")+'Caso resolvido</h2><div class="carimbo v">Arquivado</div><p class="story">'+D.final.texto+"</p><p><b>"+SEEDS[S.seed].nome+"</b><br>"+IC("medal")+"Pontuação: <b>"+S.score+"</b> · "+IC("heart")+"Vida: "+S.hp+"/"+MAXHP+"<br>"+IC("clock")+"Tempo total: <b>"+fmt(S.t)+"</b> · "+IC("flag")+"Melhor: "+fmt(bestOf(S.seed))+'</p><button class="btn stamp" id="again">'+IC("folder")+"Escolher outro caso</button></div>";
   }
   g.innerHTML=h;
   g.querySelectorAll(".hs").forEach(b=>b.onclick=()=>hsClick(+b.dataset.k));
@@ -157,6 +205,11 @@ function buildScene(final){
   const sc0=$("scene");sc0.classList.add("nt");paintScene();   /* 1ª pintura sem transição */
   requestAnimationFrame(()=>requestAnimationFrame(()=>sc0.classList.remove("nt")));
   const w=$("sw");w.scrollLeft=(w.scrollWidth-w.clientWidth)/2;
+  if(DEBUG){   /* coordenadas no sistema da arte (1600×900); clique fora de hotspot registra no console */
+    const xy=e=>{const r=sc0.getBoundingClientRect();return [Math.round((e.clientX-r.left)/r.width*1600),Math.round((e.clientY-r.top)/r.height*900)]};
+    sc0.addEventListener("pointermove",e=>{$("dbgxy").textContent=xy(e).join(", ")});
+    sc0.addEventListener("click",e=>{if(!e.target.closest(".hs"))console.log("[debug] cena "+SID[S.seed]+"/"+room.id+" ponto",xy(e).join(","))});
+  }
   if(final){dlgSeed=S.seed;say("Detetive",D.final.fala)}
   else if(dlgSeed!==S.seed){dlgSeed=S.seed;say("Detetive",D.intro)}
   else paintDlg();
@@ -207,7 +260,11 @@ function puzzleHTML(P,i,modal){
     h+='<div class="opts" role="group" aria-label="Alternativas">'+P.o.map((o,k)=>'<button class="btn opt" data-k="'+k+'" aria-pressed="'+(S.sel===k)+'"'+(sv?" disabled":"")+">"+String.fromCharCode(65+k)+") "+M(o)+"</button>").join("")+"</div>";
     if(!sv)h+='<p class="keys">Atalhos: teclas A–D (ou 1–4) escolhem · Enter analisa'+(modal?" · Esc volta à cena":"")+"</p>";
   }
-  else h+='<div class="row"><input id="ans" aria-label="Sua resposta" placeholder="Digite sua resposta" autocomplete="off"'+(sv?" disabled":"")+"></div>";
+  else{
+    const n=[].concat(P.a).length;
+    h+='<div class="row"><input id="ans" aria-label="Sua resposta" aria-describedby="fmt" placeholder="'+(n>1?"Ex.: "+Array.from({length:n},(_,k)=>k+1).join(","):"Ex.: 7 ou 1/2")+'" autocomplete="off" autocapitalize="off" spellcheck="false"'+(sv?" disabled":"")+'></div>'+
+      '<p class="fmt" id="fmt">'+(n>1?"Resposta com "+n+" números separados por vírgula. Com decimais, use ponto (1.5) ou separe por ponto e vírgula: 2; 1,5.":"Decimais: 1.5 ou 1,5. Frações: 1/2.")+"</p>";
+  }
   if(!sv)h+='<div class="row"><button class="btn stamp" id="chk">'+IC("search")+'Analisar resposta</button><button class="btn cyan" id="hb"'+(d.h>=2?" disabled":"")+">"+IC("bulb")+"Pedir dica (−"+HINT+" HP)</button>"+(modal?'<button class="btn" id="bk">'+IC("eye")+"Voltar à cena</button>":"")+"</div>";
   for(let k=0;k<d.h;k++)h+='<div class="hint">'+IC("bulb")+M(P.h[k])+"</div>";
   h+='<div id="fb" role="status">'+(sv?'<span class="carimbo v">Acertou!</span> <span class="good">+'+S.last+" pts · +"+HEAL+' HP</span><div class="row"><button class="btn" id="rv">'+IC("note")+'Rever dossiê</button><button class="btn stamp" id="nx">'+nextLabel()+"</button></div>":"")+"</div></div>";
@@ -261,10 +318,10 @@ function render(){
   const g=$("game");
   if(!sd){
     qk="";$("pzb").innerHTML="";
-    g.innerHTML='<h2>'+IC("folder")+'Escolha a investigação</h2><p class="story">Cada caso tem 10 pistas. O cronômetro começa ao abrir o arquivo.</p><div class="opts">'+SEEDS.map((s,k)=>'<button class="btn seedc" data-k="'+k+'"><b>'+s.ic+" "+s.nome+"</b><br><small>"+s.intro+" · "+(SCN[k]?IC("search")+"Point and click":"Modo linear")+(best[k]!=null?" · "+IC("flag")+"Melhor tempo: "+fmt(best[k]):"")+"</small></button>").join("")+"</div>";
+    g.innerHTML='<h2>'+IC("folder")+'Escolha a investigação</h2><p class="story">Cada caso tem 10 pistas. O cronômetro começa ao abrir o arquivo.</p><div class="opts">'+SEEDS.map((s,k)=>'<button class="btn seedc" data-k="'+k+'"><b>'+s.ic+" "+s.nome+"</b><br><small>"+s.intro+" · "+(hasScene(k)?IC("search")+"Point and click":"Modo linear")+(bestOf(k)!=null?" · "+IC("flag")+"Melhor tempo: "+fmt(bestOf(k)):"")+"</small></button>").join("")+"</div>";
     g.querySelectorAll(".seedc").forEach(b=>b.onclick=()=>{
       S=Object.assign(fresh(),{snd:S.snd,seed:+b.dataset.k});
-      const Dn=SCN[S.seed];if(Dn)S.room=Dn.salas[0].id;else S.open=0;
+      const Dn=sceneAt(S.seed);if(Dn)S.room=Dn.salas[0].id;else S.open=0;
       tk=Date.now();dlgSeed=null;lastHS=null;save();render();
     });
     return;
@@ -277,7 +334,7 @@ function render(){
   if(S.fin){
     qk="";$("pzb").innerHTML="";
     if(D){buildScene(true);paintScene();return}
-    g.innerHTML='<div class="fim"><h2>'+IC("trophy")+'Caso resolvido</h2><div class="carimbo v">Arquivado</div><p><b>'+sd.nome+"</b><br>"+IC("medal")+"Pontuação: <b>"+S.score+"</b> · "+IC("heart")+"Vida: "+S.hp+"/"+MAXHP+"<br>"+IC("clock")+"Tempo total: <b>"+fmt(S.t)+"</b> · "+IC("flag")+"Melhor: "+fmt(best[S.seed])+'</p><button class="btn stamp" id="again">'+IC("folder")+"Escolher outro caso</button></div>";
+    g.innerHTML='<div class="fim"><h2>'+IC("trophy")+'Caso resolvido</h2><div class="carimbo v">Arquivado</div><p><b>'+sd.nome+"</b><br>"+IC("medal")+"Pontuação: <b>"+S.score+"</b> · "+IC("heart")+"Vida: "+S.hp+"/"+MAXHP+"<br>"+IC("clock")+"Tempo total: <b>"+fmt(S.t)+"</b> · "+IC("flag")+"Melhor: "+fmt(bestOf(S.seed))+'</p><button class="btn stamp" id="again">'+IC("folder")+"Escolher outro caso</button></div>";
     $("again").onclick=reset;return;
   }
   if(D)ensureScene();
@@ -312,9 +369,10 @@ function hint(){const d=hsd(S.open);if(d.h>=2)return;d.h++;sfx("hint");damage(HI
 function check(){
   const P=cur(),i=S.open;let ok;
   if(P.type==="choice"){if(S.sel===null)return msg("Escolha uma alternativa antes de analisar.");ok=S.sel===P.a}
-  else{const u=parse($("ans").value),a=[].concat(P.a);
-    if(!u.length||u.some(isNaN))return msg("Formato inválido. Use números, por exemplo 5,6 ou 1/2.");
-    ok=u.length===a.length&&u.every((x,k)=>Math.abs(x-a[k])<1e-6)}
+  else{const a=[].concat(P.a),r=parse($("ans").value,a.length);
+    if(r.amb)return msg("Ambíguo: com vírgula decimal, separe os números com ponto e vírgula (ex.: 2; 1,5).");
+    if(r.bad)return msg("Formato inválido. Exemplos: 5,6 · 1/2 · 2; 1,5.");
+    ok=r.v.length===a.length&&r.v.every((x,k)=>Math.abs(x-a[k])<1e-6)}
   if(ok){
     S.last=pts();S.score+=S.last;S.hp=Math.min(MAXHP,S.hp+HEAL);S.solved.push(i);S.fc=i;S.sel=null;
     const D=scn();
@@ -329,7 +387,7 @@ function check(){
 function msg(t){const f=$("fb");if(f)f.innerHTML='<span class="bad">'+t+"</span>"}
 function finish(){
   S.fin=true;S.open=null;S.fc=null;S.sv=false;
-  if(best[S.seed]==null||S.t<best[S.seed])best[S.seed]=S.t;
+  const id=SID[S.seed];if(best[id]==null||S.t<best[id])best[id]=S.t;
   save();render();sfx("win");
   $("ovp").textContent=SEEDS[S.seed].nome+": "+S.score+" pontos, "+S.hp+" HP, tempo total "+fmt(S.t)+".";
   openM("ov","ovb");

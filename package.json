@@ -1,0 +1,14 @@
+{
+  "name": "caso-kernel",
+  "private": true,
+  "description": "Jogo de investigação point and click de Álgebra Linear (HTML/CSS/JS puro, sem build).",
+  "scripts": {
+    "validate": "node tools/validate.js",
+    "smoke": "node tools/smoke.js",
+    "smoke:mobile": "node tools/smoke.js --mobile",
+    "test": "node tools/validate.js && node tools/smoke.js"
+  },
+  "devDependencies": {
+    "playwright": "1.63.0"
+  }
+}
