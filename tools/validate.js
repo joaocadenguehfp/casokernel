@@ -239,6 +239,7 @@ for(const id in SCENES){
     if(!/viewBox="0 0 1600 900"/.test(r.svg))E(w0,"sala "+r.id+": viewBox deve ser 0 0 1600 900");
     const open=(r.svg.match(/<g\b/g)||[]).length,close=(r.svg.match(/<\/g>/g)||[]).length;
     if(open!==close)E(w0,"sala "+r.id+": <g> sem fechar ("+open+" abertos, "+close+" fechados)");
+    if(!/data-depth="0"/.test(r.svg)||!/data-depth="1"/.test(r.svg))E(w0,"sala "+r.id+": faltam as camadas de paralaxe data-depth 0 e 1");
     for(const m of r.svg.matchAll(/data-(on|off)="([^"]*)"/g)){const k=+m[2];if(!(Number.isInteger(k)&&k>=0&&k<N))E(w0,"sala "+r.id+": data-"+m[1]+" inválido: "+m[2])}
     for(const m of r.svg.matchAll(/\bid="([^"]+)"/g)){
       if(m[1].startsWith("i-"))E(w0,"id "+m[1]+" colide com o sprite de ícones");

@@ -10,6 +10,8 @@
               requires:[índices de fases que precisam estar resolvidas],
               falaAbrir, falaBloqueado, falaResolvido, quem (quem fala ao resolver),
               pista (linha de cena exibida no dossiê) }
+   Paralaxe: cada sala tem <g data-depth="0"> (fundo: paredes, piso), <g data-depth="1">
+   (objetos e hotspots) e itens soltos data-depth="2" (frente, sem hotspot).
    Estados visuais da arte: elementos SVG com data-on="k" aparecem quando a fase k
    está resolvida; data-off="k" somem quando ela é resolvida (com transição).
    Arte original, estilo Art Déco noir (sem assets de terceiros).
@@ -81,6 +83,7 @@ const salaCofre=()=>`<svg class="art" viewBox="0 0 1600 900" aria-hidden="true" 
  <clipPath id="kWin"><path d="M90 470V250A150 150 0 0 1 390 250V470Z"/></clipPath>
  <filter id="kGlow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
 </defs>
+<g data-depth="0">
 
 <!-- parede, friso e rodapé -->
 <rect width="1600" height="640" fill="url(#kWall)"/><rect width="1600" height="640" fill="url(#kDeco)"/>
@@ -96,6 +99,8 @@ const salaCofre=()=>`<svg class="art" viewBox="0 0 1600 900" aria-hidden="true" 
 <g><ellipse cx="440" cy="232" rx="44" ry="70" fill="url(#kCone)" opacity=".28"/><path d="M430 214h20l-5 40h-10z" fill="url(#kGold)"/><circle cx="440" cy="212" r="9" fill="#ffd9a0"/></g>
 <g><ellipse cx="896" cy="232" rx="44" ry="70" fill="url(#kCone)" opacity=".28"/><path d="M886 214h20l-5 40h-10z" fill="url(#kGold)"/><circle cx="896" cy="212" r="9" fill="#ffd9a0"/></g>
 
+</g>
+<g data-depth="1">
 <!-- JANELA (fase 3) -->
 <path d="M80 480V250A160 160 0 0 1 400 250V480Z" fill="#0b1824" stroke="url(#kGold)" stroke-width="7"/>
 <g clip-path="url(#kWin)"><rect x="80" y="90" width="330" height="390" fill="url(#kSky)"/>
@@ -175,6 +180,7 @@ const salaCofre=()=>`<svg class="art" viewBox="0 0 1600 900" aria-hidden="true" 
 <g filter="url(#kGlow)"><ellipse cx="227" cy="522" rx="5" ry="3" fill="#9be7ff"/><ellipse cx="253" cy="522" rx="5" ry="3" fill="#9be7ff"/></g>
 <g data-on="8" filter="url(#kGlow)"><path d="M338 420h132a14 14 0 0 1 14 14v52a14 14 0 0 1-14 14H386l-30 24 4-24h-22a14 14 0 0 1-14-14v-52a14 14 0 0 1 14-14z" fill="#0a1017" stroke="#9be7ff" stroke-width="2.5"/><g fill="#9be7ff"><circle cx="380" cy="460" r="5"/><circle cx="404" cy="460" r="5"/><circle cx="428" cy="460" r="5"/></g></g>
 
+</g>
 <rect width="1600" height="900" fill="url(#kVig)"/>
 </svg>`;
 
@@ -188,12 +194,15 @@ const fDefs=()=>baseDefs("f")+`
  <pattern id="fDeco" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M20 0L40 20L20 40L0 20Z" fill="none" stroke="#d4af37" stroke-opacity=".05"/></pattern>`;
 
 const salaPalco=()=>SVG0+`<defs>${fDefs()}</defs>
+<g data-depth="0">
 <rect width="1600" height="640" fill="url(#fWall)"/><rect width="1600" height="640" fill="url(#fDeco)"/>
 ${frieze("f",640)}
 <rect y="640" width="1600" height="260" fill="url(#fFloor)"/>${pFloor(640,"#d4af37",".06")}
 <!-- poltronas da plateia -->
-<g fill="#16090e" stroke="#d4af37" stroke-opacity=".18">${[0,1,2,3,4,5,6,7,8,9,10,11].map(i=>'<path d="M'+(110+i*120)+' 900v-60a24 24 0 0 1 48 0v60z"/>').join("")}</g>
+<g data-depth="2" fill="#16090e" stroke="#d4af37" stroke-opacity=".18">${[0,1,2,3,4,5,6,7,8,9,10,11].map(i=>'<path d="M'+(110+i*120)+' 900v-60a24 24 0 0 1 48 0v60z"/>').join("")}</g>
 
+</g>
+<g data-depth="1">
 <!-- PALCO: boca de cena -->
 <rect x="540" y="232" width="520" height="370" fill="#07050a"/>
 <polygon points="540,560 1060,560 1076,604 524,604" fill="#2c1a10"/><g stroke="#000" stroke-opacity=".5">${[0,1,2,3,4,5,6,7,8,9].map(i=>'<line x1="'+(560+i*52)+'" y1="560" x2="'+(550+i*55)+'" y2="604"/>').join("")}</g>
@@ -279,12 +288,14 @@ ${frieze("f",640)}
 <path d="M1262 140Q1300 230 1284 330H1262Z" fill="url(#fFold)"/><path d="M1530 140Q1492 230 1508 330H1530Z" fill="url(#fFold)"/>
 <path d="M1246 300H1546V336Q1396 384 1246 336Z" fill="#2a1520" stroke="url(#fGold)" stroke-width="3"/>
 <g fill="url(#fGold)">${[0,1,2,3,4,5,6].map(i=>'<circle cx="'+(1276+i*40)+'" cy="318" r="4"/>').join("")}</g>
+</g>
 ${vig("f")}
 </svg>`;
 
 const salaBiblioteca=()=>SVG0+`<defs>${fDefs()}
  <linearGradient id="fLib" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#151d26"/><stop offset="1" stop-color="#0a0e13"/></linearGradient>
  <linearGradient id="fRug" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a1018"/><stop offset="1" stop-color="#14060a"/></linearGradient></defs>
+<g data-depth="0">
 <rect width="1600" height="620" fill="url(#fLib)"/>
 ${frieze("f",620)}
 <!-- estantes -->
@@ -293,8 +304,10 @@ ${frieze("f",620)}
 <g fill="url(#fGold)" opacity=".5">${[200,320,440,560].map(y=>'<rect x="56" y="'+y+'" width="1488" height="2"/>').join("")}</g>
 <rect x="0" y="0" width="1600" height="620" fill="#000" opacity=".28"/>
 <rect y="620" width="1600" height="280" fill="url(#fRug)"/>${pFloor(620,"#d4af37",".06")}
-<ellipse cx="900" cy="790" rx="560" ry="70" fill="none" stroke="#d4af37" stroke-opacity=".25" stroke-width="3"/>
+<ellipse data-depth="2" cx="900" cy="790" rx="560" ry="70" fill="none" stroke="#d4af37" stroke-opacity=".25" stroke-width="3"/>
 
+</g>
+<g data-depth="1">
 <!-- QUADRO DO ELENCO (fase 2) -->
 <rect x="120" y="150" width="320" height="270" fill="#3a2a1a" stroke="url(#fGold)" stroke-width="5"/>
 <g>${[[150,175],[300,170],[160,300],[310,290]].map((p,i)=>'<g transform="rotate('+[-4,3,2,-3][i]+' '+(p[0]+45)+' '+(p[1]+50)+')"><rect x="'+p[0]+'" y="'+p[1]+'" width="90" height="100" fill="#e8e4d8"/><rect x="'+(p[0]+8)+'" y="'+(p[1]+8)+'" width="74" height="66" fill="#1a1a22"/><circle cx="'+(p[0]+45)+'" cy="'+(p[1]+36)+'" r="14" fill="#05080d"/><path d="M'+(p[0]+22)+' '+(p[1]+74)+'Q'+(p[0]+45)+' '+(p[1]+46)+' '+(p[0]+68)+' '+(p[1]+74)+'Z" fill="#05080d"/></g>').join("")}</g>
@@ -335,6 +348,7 @@ ${frieze("f",620)}
  <polygon points="1206,446 1300,438 1300,404 1212,410" fill="#e8e4d8"/><polygon points="1394,446 1300,438 1300,404 1388,410" fill="#d9d4c5"/>
  <g filter="url(#fGlow)" stroke="#4fc3f7" stroke-width="2"><path d="M1222 420l64-4M1222 430l64-4M1314 416l64 4M1314 426l64 4"/></g>
  <g filter="url(#fGlow)" fill="#9be7ff" font-family="Rajdhani,sans-serif" font-size="20" font-weight="700"><text x="1240" y="380">AB</text><text x="1322" y="372">≠ BA</text></g></g>
+</g>
 ${vig("f")}
 </svg>`;
 
@@ -414,12 +428,15 @@ const dDefs=()=>baseDefs("d")+`
  <pattern id="dHaz" width="40" height="40" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="20" height="40" fill="#c9a232"/><rect x="20" width="20" height="40" fill="#0a1017"/></pattern>`;
 
 const salaLab=()=>SVG0+`<defs>${dDefs()}</defs>
+<g data-depth="0">
 <rect width="1600" height="620" fill="url(#dWall)"/><rect width="1600" height="620" fill="url(#dTile)"/>
 ${frieze("d",620)}
 <rect y="620" width="1600" height="280" fill="url(#dFloor)"/>${pFloor(620,"#3fd0a0",".07")}
 <!-- luminárias -->
 <g>${[262,1385].map(x=>'<path d="M'+x+' 63V96" stroke="#d4af37" stroke-width="2"/><path d="M'+(x-50)+' 112L'+(x-30)+' 96H'+(x+30)+'L'+(x+50)+' 112Z" fill="url(#dGold)"/><polygon points="'+(x-50)+',112 '+(x+50)+',112 '+(x+150)+',520 '+(x-150)+',520" fill="url(#dBeam)" opacity=".35"/>').join("")}</g>
 
+</g>
+<g data-depth="1">
 <!-- FRASCOS DE REAGENTES (fase 0) -->
 <rect x="80" y="300" width="340" height="12" fill="url(#dGold)"/><path d="M110 312v24h14M390 312v24h-14" stroke="#d4af37" stroke-opacity=".6" fill="none" stroke-width="3"/>
 ${flask(125,300,"#1d4a3e")}${flask(205,300,"#1d4a3e")}${flask(285,300,"#1d4a3e")}${flask(365,300,"#1d4a3e")}
@@ -483,16 +500,20 @@ ${flask(125,300,"#1d4a3e")}${flask(205,300,"#1d4a3e")}${flask(285,300,"#1d4a3e")
 <rect x="1360" y="514" width="50" height="8" fill="url(#dGold)"/>
 <g data-on="6" filter="url(#dGlow)"><path d="M1347 486a40 40 0 0 0 76 0Z" fill="#e5c158"/><g fill="#fff3c4"><circle cx="1372" cy="470" r="4"/><circle cx="1392" cy="456" r="3"/><circle cx="1385" cy="430" r="4"/><circle cx="1398" cy="412" r="3"/></g>
  <path d="M1290 410H1375M1481 410H1395" stroke="#9be7ff" stroke-width="3"/></g>
+</g>
 ${vig("d")}
 </svg>`;
 
 const salaCamara=()=>SVG0+`<defs>${dDefs()}
  <linearGradient id="dCold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#15283a"/><stop offset="1" stop-color="#08121b"/></linearGradient></defs>
+<g data-depth="0">
 <rect width="1600" height="640" fill="url(#dCold)"/><rect width="1600" height="640" fill="url(#dTile)"/>
 ${frieze("d",640)}
 <rect y="640" width="1600" height="260" fill="url(#dFloor)"/>${pFloor(640,"#9be7ff",".06")}
-<g fill="#cfeeff" opacity=".1">${[[300,700],[540,760],[1460,720],[760,820],[1500,860]].map(p=>'<ellipse cx="'+p[0]+'" cy="'+p[1]+'" rx="90" ry="10"/>').join("")}</g>
+<g data-depth="2" fill="#cfeeff" opacity=".1">${[[300,700],[540,760],[1460,720],[760,820],[1500,860]].map(p=>'<ellipse cx="'+p[0]+'" cy="'+p[1]+'" rx="90" ry="10"/>').join("")}</g>
 
+</g>
+<g data-depth="1">
 <!-- GAVETAS DO NECROTÉRIO (fase 4) -->
 <rect x="120" y="150" width="640" height="460" fill="#0a131a" stroke="url(#dGold)" stroke-width="4"/>
 <g>${[[150,180,"A₁"],[350,180,"A₂"],[550,180,"A₃"],[150,400,"A₄"],[350,400,"A₅"]].map(d=>'<rect x="'+d[0]+'" y="'+d[1]+'" width="180" height="190" fill="url(#dSteel)" stroke="#d4af37" stroke-opacity=".5"/><rect x="'+(d[0]+60)+'" y="'+(d[1]+80)+'" width="60" height="12" rx="5" fill="url(#dGold)"/><rect x="'+(d[0]+66)+'" y="'+(d[1]+24)+'" width="48" height="24" fill="#0a1017" stroke="#d4af37" stroke-opacity=".6"/><text x="'+(d[0]+90)+'" y="'+(d[1]+42)+'" text-anchor="middle" font-family="Cinzel,serif" font-size="16" fill="#e5c158">'+d[2]+'</text>').join("")}</g>
@@ -517,6 +538,7 @@ ${frieze("d",640)}
 <path d="M1340 584L1362 600" stroke="#e8e4d8" stroke-width="2"/><rect x="1352" y="600" width="64" height="36" fill="#e8e4d8" transform="rotate(8 1384 618)"/>
 <text data-off="8" x="1384" y="626" text-anchor="middle" font-family="Cinzel,serif" font-size="20" fill="#1a1218" transform="rotate(8 1384 618)">?</text>
 <g data-on="8" filter="url(#dGlow)" transform="rotate(8 1384 618)"><rect x="1352" y="600" width="64" height="36" fill="none" stroke="#4fc3f7" stroke-width="3"/><text x="1384" y="626" text-anchor="middle" font-family="Rajdhani,sans-serif" font-size="20" font-weight="700" fill="#16688f">LI</text></g>
+</g>
 ${vig("d")}
 </svg>`;
 
@@ -599,6 +621,7 @@ const oDefs=()=>baseDefs("o")+`
  <clipPath id="oSlit"><rect x="700" y="63" width="200" height="380"/></clipPath>`;
 
 const salaCupula=()=>SVG0+`<defs>${oDefs()}</defs>
+<g data-depth="0">
 <rect width="1600" height="640" fill="#080d14"/>
 <!-- cúpula com nervuras e fenda -->
 <path d="M46 640V420Q46 63 800 63Q1554 63 1554 420V640Z" fill="url(#oDome)"/>
@@ -610,6 +633,8 @@ ${frieze("o",640)}
 <rect y="640" width="1600" height="260" fill="url(#oFloor)"/>${pFloor(640,"#d4af37",".06")}
 <ellipse cx="800" cy="700" rx="420" ry="46" fill="none" stroke="#d4af37" stroke-opacity=".3" stroke-width="3"/>
 
+</g>
+<g data-depth="1">
 <!-- LUNETA (fase 0): aponta na direção (1,1) -->
 <path d="M760 700L790 600H810L840 700Z" fill="#141e28" stroke="url(#oGold)" stroke-width="2"/>
 <circle cx="800" cy="580" r="26" fill="url(#oGold)"/>
@@ -647,18 +672,22 @@ ${frieze("o",640)}
 <g data-on="7" filter="url(#oGlow)"><ellipse cx="320" cy="610" rx="150" ry="58" transform="rotate(-20 320 610)" fill="none" stroke="#9be7ff" stroke-width="3"/>
  <path d="M178 662L462 558M282 506L358 714" stroke="#9be7ff" stroke-opacity=".5" stroke-dasharray="6 6"/>
  <circle cx="180" cy="660" r="10" fill="#9be7ff"/><text x="320" y="530" text-anchor="middle" font-family="Rajdhani,sans-serif" font-size="20" font-weight="700" fill="#9be7ff">x'² + 5y'² = 5</text></g>
+</g>
 ${vig("o")}
 </svg>`;
 
 const salaMapas=()=>SVG0+`<defs>${oDefs()}
  <linearGradient id="oWood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a1a22"/><stop offset="1" stop-color="#0e0d12"/></linearGradient>
  <linearGradient id="oChart" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0f2236"/><stop offset="1" stop-color="#081422"/></linearGradient></defs>
+<g data-depth="0">
 <rect width="1600" height="620" fill="url(#oWood)"/>
 ${frieze("o",620)}
 <rect x="46" y="500" width="1508" height="120" fill="#151016"/><path d="M46 500H1554" stroke="url(#oGold)" stroke-width="2"/>
 <g stroke="#d4af37" stroke-opacity=".15">${[...Array(15).keys()].map(i=>'<line x1="'+(100+i*100)+'" y1="510" x2="'+(100+i*100)+'" y2="610"/>').join("")}</g>
 <rect y="620" width="1600" height="280" fill="url(#oFloor)"/>${pFloor(620,"#d4af37",".06")}
 
+</g>
+<g data-depth="1">
 <!-- LOUSA (fase 1) -->
 <rect x="90" y="130" width="350" height="270" rx="4" fill="#6f5614"/><rect x="100" y="140" width="330" height="250" fill="#0c1a1f"/>
 <rect x="100" y="390" width="330" height="10" fill="url(#oGold)"/>
@@ -710,6 +739,7 @@ ${oStars(510,120,340,200,26,5)}
 <g data-on="8" filter="url(#oGlow)" stroke="#9be7ff" stroke-width="2">${[...Array(14).keys()].map(i=>{const a=i/14*Math.PI*2,b=a+1.9;return '<line x1="'+(1360+Math.cos(a)*70).toFixed(1)+'" y1="'+(340+Math.sin(a)*14).toFixed(1)+'" x2="'+(1360+Math.cos(b)*70).toFixed(1)+'" y2="'+(590+Math.sin(b)*14).toFixed(1)+'"/>'}).join("")}
  <text x="1360" y="314" text-anchor="middle" font-family="Rajdhani,sans-serif" font-size="20" font-weight="700" fill="#9be7ff" stroke="none">1 folha</text></g>
 <ellipse cx="1360" cy="340" rx="70" ry="14" fill="none" stroke="url(#oGold)" stroke-width="3"/><ellipse cx="1360" cy="590" rx="70" ry="14" fill="none" stroke="url(#oGold)" stroke-width="3"/>
+</g>
 ${vig("o")}
 </svg>`;
 

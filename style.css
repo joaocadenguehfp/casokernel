@@ -442,3 +442,9 @@ li.lk{--frame:linear-gradient(rgba(212,175,55,.35),rgba(212,175,55,.35));--ln:rg
 .kst{gap:10px 18px}
 .kc{display:inline-flex;align-items:center;gap:6px}.kc output{min-width:2.2em;text-align:center;font:700 1.15rem var(--math);color:var(--cyan2)}.kc small{color:var(--mut)}
 .cards .btn[aria-pressed=true]{--frame:linear-gradient(135deg,#ffc27a,#ff7b00 45%,#a64600);--ln:#ff8f26;color:#ffd9b0}
+
+/* ---------- Paralaxe 2.5D ---------- */
+.scene [data-depth]{transition:transform .35s ease-out;transform-box:view-box;transform-origin:800px 450px}
+.scene [data-depth="0"]{transform:scale(1.04)}
+.hs{translate:var(--hx,0px) var(--hy,0px);transition:translate .35s ease-out}
+@media(prefers-reduced-motion:reduce){.scene [data-depth]{transform:none!important}.hs{translate:none}}

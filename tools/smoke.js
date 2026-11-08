@@ -256,6 +256,17 @@ const fmtAns=(a,dec)=>[].concat(a).map(v=>{
   if(JSON.stringify(pr)!==JSON.stringify(want))fail("parser: "+JSON.stringify(pr));
   report.push("parser de respostas: ok");
 
+  /* paralaxe: o ponteiro desloca as camadas e os hotspots; com movimento reduzido, nada se move */
+  if(!MOBILE){
+    await wipe();await page.locator(".seedc[data-k]").first().click();await page.waitForSelector("#scene");
+    const box=await page.locator("#scene").boundingBox();
+    await page.mouse.move(box.x+box.width*.9,box.y+box.height*.9);await page.waitForTimeout(500);
+    const px=await page.evaluate(()=>({g:document.querySelector('#scene [data-depth="1"]').style.transform,hx:$("scene").style.getPropertyValue("--hx")}));
+    if(!/translate\(-/.test(px.g)||!px.hx.startsWith("-"))fail("paralaxe não deslocou as camadas: "+JSON.stringify(px));
+    await shot("paralaxe");
+    report.push("paralaxe: ok ("+px.hx+" nos hotspots)");
+  }
+
   /* 3D com movimento reduzido: cai na reserva em SVG */
   {
     const c2=await browser.newContext({viewport:{width:1280,height:900},reducedMotion:"reduce"}),p2=await c2.newPage();
@@ -264,6 +275,9 @@ const fmtAns=(a,dec)=>[].concat(a).map(v=>{
     await p2.evaluate(()=>{S=Object.assign(fresh(),{seed:idxOf("observatorio"),rs:7,solved:[0,1,2,3,4,5,6],open:8,room:"mapas"});render()});
     await p2.waitForSelector("#tool .v3 svg polyline",{timeout:5000}).catch(()=>fail("reserva SVG do 3D não apareceu com movimento reduzido"));
     if(await p2.locator("#tool .v3 canvas").count())fail("movimento reduzido carregou WebGL");
+    await p2.evaluate(()=>{closeM("pz",false);S.open=null;render()});
+    const bx=await p2.locator("#scene").boundingBox();await p2.mouse.move(bx.x+5,bx.y+5);await p2.waitForTimeout(300);
+    if(await p2.evaluate(()=>document.querySelector('#scene [data-depth="1"]').style.transform))fail("paralaxe ativa com movimento reduzido");
     await c2.close();
   }
   report.push("3D com movimento reduzido (SVG): ok");

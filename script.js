@@ -239,6 +239,7 @@ function buildScene(final){
   const D=scn(),room=D.salas.find(r=>r.id===S.room)||D.salas[0],g=$("game");
   let h='<div class="sbar"><span class="rn">'+IC("eye")+room.nome+"</span>";
   if(D.salas.length>1)h+='<span class="rooms">'+D.salas.map(r=>'<button class="btn sm" data-room="'+r.id+'"'+(r.id===room.id?' aria-pressed="true"':"")+">"+r.nome+"</button>").join("")+"</span>";
+  if(!final&&gyroOK())h+='<button class="btn sm" id="gyb" aria-pressed="'+gyroOn+'">'+IC("eye")+'<span class="t">Giroscópio</span></button>';
   if(!final)h+='<button class="btn sm" id="hlt">'+IC("search")+'<span class="t">Destacar objetos</span><kbd>H</kbd></button>';
   h+='</div><div class="scenewrap" id="sw"><div class="scene'+(final?" final":"")+'" id="scene" data-key="'+S.seed+":"+room.id+":"+(final?"f":"p")+'">'+room.svg;
   if(!final)h+=D.hotspots.filter(x=>x.sala===room.id).map(hsHTML).join("");
@@ -255,6 +256,7 @@ function buildScene(final){
   const sc0=$("scene");sc0.classList.add("nt");paintScene();   /* 1ª pintura sem transição */
   requestAnimationFrame(()=>requestAnimationFrame(()=>sc0.classList.remove("nt")));
   const w=$("sw");w.scrollLeft=(w.scrollWidth-w.clientWidth)/2;
+  parallax(sc0);if($("gyb"))$("gyb").onclick=gyroToggle;
   if(DEBUG){   /* coordenadas no sistema da arte (1600×900); clique fora de hotspot registra no console */
     const xy=e=>{const r=sc0.getBoundingClientRect();return [Math.round((e.clientX-r.left)/r.width*1600),Math.round((e.clientY-r.top)/r.height*900)]};
     sc0.addEventListener("pointermove",e=>{$("dbgxy").textContent=xy(e).join(", ")});
@@ -263,6 +265,34 @@ function buildScene(final){
   if(final){dlgSeed=S.seed;say("Detetive",D.final.fala)}
   else if(dlgSeed!==S.seed){dlgSeed=S.seed;say("Detetive",D.intro)}
   else paintDlg();
+}
+/* ---- paralaxe 2.5D: camadas data-depth deslocam até 12 px com o ponteiro (ou giroscópio, se o jogador ligar) ---- */
+const PX=[4,8,12];   /* px por camada: fundo, objetos (hotspots acompanham), frente */
+let gyroOn=false,gyroFn=null;
+const gyroOK=()=>"DeviceOrientationEvent" in window&&!!(window.matchMedia&&matchMedia("(pointer:coarse)").matches)&&!reducedMotion();
+const reducedMotion=()=>!!(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches);
+function tilt(sc,nx,ny){
+  const k=1600/(sc.clientWidth||1600);
+  sc.querySelectorAll("[data-depth]").forEach(g=>{const p=PX[+g.dataset.depth]||0;g.style.transform="translate("+(-nx*p*k).toFixed(1)+"px,"+(-ny*p*k).toFixed(1)+"px)"+(g.dataset.depth==="0"?" scale(1.04)":"")});
+  sc.style.setProperty("--hx",(-nx*PX[1]).toFixed(1)+"px");sc.style.setProperty("--hy",(-ny*PX[1]).toFixed(1)+"px");
+}
+function parallax(sc){
+  if(reducedMotion())return;
+  const fine=window.matchMedia&&matchMedia("(pointer:fine)").matches;
+  let q=null;const go=(nx,ny)=>{if(q)cancelAnimationFrame(q);q=requestAnimationFrame(()=>{q=null;tilt(sc,Math.max(-1,Math.min(1,nx)),Math.max(-1,Math.min(1,ny)))})};
+  if(fine){
+    sc.addEventListener("pointermove",e=>{const r=sc.getBoundingClientRect();go((e.clientX-r.left)/r.width*2-1,(e.clientY-r.top)/r.height*2-1)});
+    sc.addEventListener("pointerleave",()=>go(0,0));
+  }
+  if(gyroOn){gyroFn=e=>{if(!document.contains(sc))return;go((e.gamma||0)/30,((e.beta||45)-45)/30)};addEventListener("deviceorientation",gyroFn)}
+}
+async function gyroToggle(){
+  if(gyroOn){gyroOn=false;if(gyroFn)removeEventListener("deviceorientation",gyroFn);gyroFn=null;const s=$("scene");if(s)tilt(s,0,0)}
+  else{
+    try{if(typeof DeviceOrientationEvent.requestPermission==="function"&&await DeviceOrientationEvent.requestPermission()!=="granted")return}catch(e){return}
+    gyroOn=true;const s=$("scene");if(s)parallax(s);
+  }
+  const b=$("gyb");if(b)b.setAttribute("aria-pressed",gyroOn);sfx("key");
 }
 function paintScene(){
   const D=scn(),s=$("scene");if(!s)return;
