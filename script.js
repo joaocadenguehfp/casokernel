@@ -623,8 +623,15 @@ function check(){
     sfx("ok");save();render();anim("folder","ok");
   }else{
     hsd(i).w++;sfx("no");damage(HIT);
-    if(!S.over)msg("✘ Resposta incorreta"+(INV()?"":" (−"+HIT+" HP)")+". Revise ou peça uma dica.");
+    if(!S.over){msg("✘ Resposta incorreta"+(INV()?"":" (−"+HIT+" HP)")+". Revise ou peça uma dica.");suggestTool(P)}
   }
+}
+/* depois de um erro, se a fase tem ferramenta e ela está fechada, sugere abri-la */
+function suggestTool(P){
+  const b=$("tlb"),el=$("tool"),f=$("fb");
+  if(!P.tool||!b||!el||!f||!el.hidden||typeof TOOLS2D==="undefined"||!TOOLS2D[P.tool])return;
+  f.insertAdjacentHTML("beforeend",'<p class="tsg">'+IC("eye")+'Ver o problema de outro jeito costuma ajudar. <button type="button" class="btn sm cyan" id="tsug">Abrir '+TOOLS2D[P.tool].nome+"</button></p>");
+  $("tsug").onclick=()=>{b.click();el.scrollIntoView({block:"nearest",behavior:"smooth"});const t=el.querySelector("svg,.v3,select,input");if(t&&t.focus)t.focus()};
 }
 function msg(t,raw){const f=$("fb");if(f)f.innerHTML=raw?t:'<span class="bad">'+t+"</span>"}
 function finish(){

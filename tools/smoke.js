@@ -257,6 +257,21 @@ const fmtAns=(a,dec)=>[].concat(a).map(v=>{
   if(JSON.stringify(pr)!==JSON.stringify(want))fail("parser: "+JSON.stringify(pr));
   report.push("parser de respostas: ok");
 
+  /* erro numa fase com ferramenta fechada: o jogo sugere abri-la */
+  {
+    await wipe();
+    await page.evaluate(()=>{S=Object.assign(fresh(),{seed:idxOf("observatorio"),rs:5,room:"cupula",open:0});render()});
+    await page.waitForSelector("#pz.on");
+    await page.fill("#ans","999");await page.click("#chk");
+    await page.waitForSelector("#tsug").catch(()=>fail("erro não sugeriu a ferramenta"));
+    await page.click("#tsug");
+    if(await page.locator("#tool[hidden]").count())fail("o botão da sugestão não abriu a ferramenta");
+    await page.fill("#ans","999");await page.click("#chk");
+    if(await page.locator("#tsug").count())fail("sugeriu abrir uma ferramenta que já está aberta");
+    await wipe();
+    report.push("erro → ferramenta: ok");
+  }
+
   /* trilha opcional: liga e desliga sem erros; começa desligada */
   {
     if(await page.evaluate(()=>musOn))fail("trilha começou ligada");

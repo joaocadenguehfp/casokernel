@@ -457,3 +457,7 @@ li.lk{--frame:linear-gradient(rgba(212,175,55,.35),rgba(212,175,55,.35));--ln:rg
 #mus[aria-pressed=true]{--frame:linear-gradient(135deg,#bff0ff,#4fc3f7 50%,#16688f);--ln:#4fc3f7;color:#d6f4ff}
 #gyb[aria-pressed=true]{--frame:linear-gradient(135deg,#bff0ff,#4fc3f7 50%,#16688f);--ln:#4fc3f7}
 @media(max-width:819px){#mus{order:2}}
+
+/* ---------- Sugestão de ferramenta após erro ---------- */
+.tsg{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:10px 0 0;font:500 1rem var(--ui);color:#d6f4ff}
+.tsg .ic{color:var(--cyan)}
