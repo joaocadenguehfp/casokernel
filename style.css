@@ -470,3 +470,15 @@ li.lk{--frame:linear-gradient(rgba(212,175,55,.35),rgba(212,175,55,.35));--ln:rg
 .dzl{flex:1;min-width:200px;min-height:40px;font:600 .95rem var(--ui);color:var(--cyan2);border-bottom-width:1px}
 .dzw{color:#ffd9b0}
 .dzmsg{min-height:1.2em;margin:6px 0 0;color:#8cf0c9;font-size:.95rem}
+
+/* ---------- Modo Revisão ---------- */
+.seedc.rvc{--frame:linear-gradient(135deg,#bff0ff,#4fc3f7 45%,#16688f);--ln:#4fc3f7}
+.seedc.rvc b{color:var(--cyan2)}
+.seedc.rvc:disabled{opacity:.55}
+.rvc2,.rvtip{padding:10px 14px;margin:12px 0}
+.rvc2{border-left:3px solid var(--cyan);background:linear-gradient(90deg,rgba(79,195,247,.15),transparent);font:700 1.15rem var(--ui);color:var(--cyan2)}
+.rvtip{border-left:3px solid var(--copper);background:linear-gradient(90deg,rgba(255,123,0,.13),transparent);color:#ffd9b0}
+.rvc2 .lb,.rvtip .lb{display:block;font:700 .72rem var(--ui);letter-spacing:.2em;text-transform:uppercase;color:var(--mut)}
+.rvst{color:var(--txt)}.rvst .ic{color:var(--cyan)}
+.rvres{display:block;max-width:560px;margin:8px auto 18px;padding:0;text-align:left}
+.rvres li{list-style:none;padding:6px 0;border-bottom:1px solid rgba(212,175,55,.15)}

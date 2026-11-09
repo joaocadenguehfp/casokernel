@@ -33,7 +33,9 @@ Cada caso tem 10 pistas, da mais fácil ao chefão, e termina com um interrogat�
   - **Detetive:** erros e dicas custam vida.
   - **Investigador:** sem perda de vida, para estudar no próprio ritmo.
   - **Time Attack:** 3 minutos de problemas sorteados de todos os casos.
+- **Errou?** Se a pista tem uma ferramenta visual, o jogo sugere abri-la logo depois do erro.
 - **Números sorteados:** a cada partida, 22 dos 40 problemas mudam de números, então não dá para decorar as respostas.
+- **Modo Revisão:** os conceitos em que você errou ou pediu dica, em qualquer modo, voltam em sessões curtas com números novos e a explicação de cada um. Acertar de primeira adia a próxima revisão (1, 3, 7 e depois 14 dias); errar faz o conceito voltar logo. O progresso fica no seu navegador.
 - **Desafio da turma:** na tela de casos, **Criar desafio** gera um link como `case-kernel.vercel.app/?desafio=K7XQ2M&v=1`. Todos que abrirem o link recebem os mesmos números nos casos e no Time Attack. No fim, **Copiar resultado** gera um texto com pontos, tempo, erros e conceitos a revisar para colar no grupo da turma.
 
 ## Ferramentas para enxergar a matemática

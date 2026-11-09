@@ -106,6 +106,7 @@ const fmtAns=(a,dec)=>[].concat(a).map(v=>{
         const hp=await page.evaluate(()=>S.hp);
         const HIT=await page.evaluate(()=>HIT);
         if(hp!==P.hp-HIT)fail(sd.id+": erro deveria custar "+HIT+" HP ("+P.hp+" -> "+hp+")");
+        if(!(await page.evaluate(()=>{const r=JSON.parse(localStorage.getItem("caso-kernel-revisao")||"{}")[cur().k];return r&&r.w>0&&r.box===0})))fail(sd.id+": o erro não entrou na revisão");
         erred=true;
       }
       if(!hinted){
@@ -256,6 +257,39 @@ const fmtAns=(a,dec)=>[].concat(a).map(v=>{
   const want=[{v:[3,1]},{v:[2,1.5]},{v:[1.5]},{amb:true},{v:[.5]},{v:[-1,5]},{bad:true},{bad:true}];
   if(JSON.stringify(pr)!==JSON.stringify(want))fail("parser: "+JSON.stringify(pr));
   report.push("parser de respostas: ok");
+
+  /* modo Revisão: conceitos com erro voltam com números novos; acertar de primeira adia a revisão */
+  {
+    await wipe({"caso-kernel-revisao":JSON.stringify({ker:{w:2,h:0,ok:0,box:0,due:0},eig:{w:0,h:1,ok:0,box:0,due:0},lin:{w:1,h:0,ok:3,box:2,due:Date.now()+5*864e5}})});
+    if(!/2 conceitos para revisar/.test(await page.locator("#rvb").innerText()))fail("revisão: cartão não mostrou os 2 conceitos pendentes");
+    await page.click("#rvb");await page.waitForSelector("#game .cs");
+    const st=await page.evaluate(()=>({n:S.rv.q.length,ks:[...new Set(S.rv.q.map(x=>x.k))].sort().join(",")}));
+    if(st.ks!=="eig,ker")fail("revisão: conceitos errados na sessão: "+st.ks);
+    for(let j=0;j<st.n;j++){
+      const P=await page.evaluate(()=>{const c=cur();return {type:c.type,a:c.a,o:c.o,k:c.k,tool:!!c.tool}});
+      const answer=async()=>{if(P.type==="choice")await page.locator("#game .opt").nth(P.a).click();else await page.fill("#ans",fmtAns(P.a,false));await page.click("#chk")};
+      if(j===0){ /* erro, dica e depois o acerto: o conceito fica na caixa 1 */
+        if(P.type==="choice")await page.locator("#game .opt").nth((P.a+1)%P.o.length).click();else await page.fill("#ans","999");
+        await page.click("#chk");
+        if(P.tool&&!(await page.locator("#tsug").count()))fail("revisão: erro não sugeriu a ferramenta");
+        await page.click("#hb");if(!(await page.locator("#game .hint").count()))fail("revisão: dica não apareceu");
+        if(j===0){await page.reload();await page.waitForSelector("#game .cs");if(await page.evaluate(()=>S.rv.h)!==1)fail("revisão: sessão não voltou após recarregar")}
+      }
+      await answer();
+      await page.waitForSelector("#rvn").catch(()=>fail("revisão: acerto não foi aceito ("+P.k+")"));
+      if(j===0)await shot("revisao-explicacao");
+      await page.click("#rvn");
+    }
+    await page.waitForSelector("#game .rvres");
+    const fim=await page.evaluate(()=>({first:S.rv.first,n:S.rv.q.length,rv:JSON.parse(localStorage.getItem("caso-kernel-revisao"))}));
+    if(fim.first!==fim.n-1)fail("revisão: contagem de acertos de primeira errada "+JSON.stringify(fim));
+    const subiu=Object.values(fim.rv).filter(r=>r.box>=1&&r.due>Date.now());
+    if(!subiu.length)fail("revisão: nenhum conceito foi adiado após acertar de primeira");
+    if(fim.rv.lin.box!==2)fail("revisão: conceito que não estava pendente foi alterado");
+    if(Object.values(fim.rv).some(r=>r.box>=2&&r!==fim.rv.lin))fail("revisão: um conceito subiu mais de uma caixa na mesma sessão");
+    await shot("revisao-fim");
+    report.push("modo Revisão: ok ("+fim.n+" questões, "+fim.first+" de primeira)");
+  }
 
   /* desafio da turma: mesmo link -> mesmos números em sessões diferentes (casos e Time Attack) */
   {

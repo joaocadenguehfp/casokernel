@@ -44,7 +44,7 @@ const sceneAt=i=>{if(!hasScene(i))return null;const id=SID[i];return scCache[id]
 /* rs: semente da partida (sorteio dos problemas com g, ver cases.js) */
 const newRs=()=>Math.floor(Math.random()*4294967296);
 const TA_MS=180000,TA_PEN=10000,TA_PTS={f:50,m:100,d:150,b:200};
-const fresh=()=>({seed:null,dz:null,iq:0,mode:"det",pmode:"det",ta:null,rs:0,hp:MAXHP,score:0,solved:[],hs:{},open:null,sv:false,sel:null,fc:null,last:0,room:null,snd:true,over:false,fin:false,t:0});
+const fresh=()=>({seed:null,rv:null,dz:null,iq:0,mode:"det",pmode:"det",ta:null,rs:0,hp:MAXHP,score:0,solved:[],hs:{},open:null,sv:false,sel:null,fc:null,last:0,room:null,snd:true,over:false,fin:false,t:0});
 const rdj=k=>{try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}};
 const sceneOf=s=>sceneAt(s.seed);
 const isAv=(s,i)=>{
@@ -77,6 +77,12 @@ function loadBest(){
 function sanitize(s){
   const n=(v,a,b,f)=>Number.isFinite(v)&&v>=a&&v<=b?v:f;
   const base=Object.assign(fresh(),{snd:s.snd!==false,pmode:s.pmode==="inv"?"inv":"det",dz:dzClean(s.dz)});
+  const v=s.rv;
+  if(v&&typeof v==="object"&&Array.isArray(v.q)&&v.q.length&&v.q.every(x=>x&&Number.isInteger(x.s)&&SEEDS[x.s]&&Number.isInteger(x.i)&&SEEDS[x.s].casos[x.i])){
+    base.rv={q:v.q.map(x=>({s:x.s,i:x.i,rs:Number.isInteger(x.rs)?x.rs:newRs(),k:SEEDS[x.s].casos[x.i].k})),pos:n(v.pos,0,v.q.length,0),h:n(v.h,0,2,0),w:n(v.w,0,999,0),
+      stage:v.stage==="ok"?"ok":"ask",first:n(v.first,0,99,0),res:Array.isArray(v.res)?v.res.filter(r=>r&&FL[r.k]).map(r=>({k:r.k,f:!!r.f})):[],end:!!v.end};
+    return base;
+  }
   const t=s.ta;
   if(t&&typeof t==="object"&&t.q&&TA_POOL.some(p=>p[0]===t.q.s&&p[1]===t.q.i)){
     base.ta={left:n(t.left,0,TA_MS,TA_MS),score:n(t.score,0,1e7,0),n:n(t.n,0,1e5,0),w:n(t.w,0,1e5,0),end:!!t.end,dz:t.dz?dzNorm(t.dz):null,
@@ -127,7 +133,7 @@ function caseOf(s,i,rs){
   return gMemo[key]=Object.assign({},P,P.g(mkR(h>>>0)));
 }
 const caseAt=i=>caseOf(S.seed,i,S.rs);
-const cur=()=>S.ta?caseOf(S.ta.q.s,S.ta.q.i,S.ta.q.rs):caseAt(S.open);
+const cur=()=>S.ta?caseOf(S.ta.q.s,S.ta.q.i,S.ta.q.rs):S.rv?caseOf(S.rv.q[S.rv.pos].s,S.rv.q[S.rv.pos].i,S.rv.q[S.rv.pos].rs):caseAt(S.open);
 const hsd=i=>S.hs[i]||(S.hs[i]={h:0,w:0});
 const fmt=ms=>{const s=Math.floor(ms/1000);return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0")};
 
@@ -294,13 +300,13 @@ function buildScene(final){
   if(DEBUG)h+='<output class="dbgxy" id="dbgxy">x, y</output>';
   h+='</div></div><p class="keys pan">Arraste a cena para os lados para explorar.</p><div class="dlg" id="dlg" role="status" aria-live="polite"></div>';
   if(final){
-    h+='<div class="fim"><h2>'+IC("trophy")+'Caso resolvido</h2><div class="carimbo v">Arquivado</div><p class="story">'+D.final.texto+"</p><p><b>"+SEEDS[S.seed].nome+"</b><br>"+IC("medal")+"Pontuação: <b>"+S.score+"</b> · "+IC("heart")+"Vida: "+S.hp+"/"+MAXHP+"<br>"+IC("clock")+"Tempo total: <b>"+fmt(S.t)+"</b> · "+IC("flag")+"Melhor: "+fmt(bestOf(S.seed))+"<br>"+modeTag()+'</p>'+weak().html+'<div class="row" style="justify-content:center"><button class="btn stamp" id="again">'+IC("folder")+'Escolher outro caso</button><button class="btn" id="cpr">'+IC("note")+'Copiar resultado</button></div><p class="dzmsg" id="cprm" role="status"></p></div>';
+    h+='<div class="fim"><h2>'+IC("trophy")+'Caso resolvido</h2><div class="carimbo v">Arquivado</div><p class="story">'+D.final.texto+"</p><p><b>"+SEEDS[S.seed].nome+"</b><br>"+IC("medal")+"Pontuação: <b>"+S.score+"</b> · "+IC("heart")+"Vida: "+S.hp+"/"+MAXHP+"<br>"+IC("clock")+"Tempo total: <b>"+fmt(S.t)+"</b> · "+IC("flag")+"Melhor: "+fmt(bestOf(S.seed))+"<br>"+modeTag()+'</p>'+weak().html+'<div class="row" style="justify-content:center"><button class="btn stamp" id="again">'+IC("folder")+'Escolher outro caso</button>'+(rvDue().length?'<button class="btn cyan" id="rvnow">'+IC("book")+"Revisar agora</button>":"")+'<button class="btn" id="cpr">'+IC("note")+'Copiar resultado</button></div><p class="dzmsg" id="cprm" role="status"></p></div>';
   }
   g.innerHTML=h;
   g.querySelectorAll(".hs").forEach(b=>b.onclick=()=>hsClick(+b.dataset.k));
   g.querySelectorAll("[data-room]").forEach(b=>b.onclick=()=>{if(S.room!==b.dataset.room)sfx("door");S.room=b.dataset.room;save();render()});
   if($("hlt"))$("hlt").onclick=flashAll;
-  if(final){$("again").onclick=reset;$("cpr").onclick=copyResult}
+  if(final){$("again").onclick=reset;$("cpr").onclick=copyResult;if($("rvnow"))$("rvnow").onclick=()=>rvStart(false)}
   const sc0=$("scene");sc0.classList.add("nt");paintScene();   /* 1ª pintura sem transição */
   requestAnimationFrame(()=>requestAnimationFrame(()=>sc0.classList.remove("nt")));
   const w=$("sw");w.scrollLeft=(w.scrollWidth-w.clientWidth)/2;
@@ -389,8 +395,8 @@ function hsClick(k){
 
 /* ---- problema (painel sobre a cena ou card linear) ---- */
 function puzzleHTML(P,i,modal){
-  const ta=!!S.ta,d=ta?{h:0,w:0}:hsd(i),b=P.d==="b"&&!ta,df=DIF[P.d],sv=!modal&&S.sv&&!ta,H=modal?scn().hotspots.find(x=>x.caso===i):null;
-  let h='<div class="cs'+(b?" boss":"")+'">'+(b?'<div class="carimbo suspeito">Suspeito principal</div>':"")+'<div class="fase">'+IC(ta?"clock":modal?"pin":"folder")+(ta?"Time Attack · questão "+(S.ta.n+S.ta.w+1)+" · "+SEEDS[S.ta.q.s].nome:modal?H.nome+" · Pista "+(i+1)+" de "+N:"Fase "+(i+1)+" de "+N)+' <span class="dif d-'+P.d+'">'+df[0]+" "+df[1]+"</span></div><h2>"+IC("eye")+P.t+"</h2>"+(P.s?'<div class="story">'+M(P.s)+"</div>":"")+'<div class="q">'+IC("search")+M(P.q)+"</div>";
+  const ta=!!S.ta,rv=!!S.rv,d=ta?{h:0,w:0}:rv?{h:S.rv.h,w:S.rv.w}:hsd(i),b=P.d==="b"&&!ta&&!rv,df=DIF[P.d],sv=!modal&&S.sv&&!ta&&!rv,H=modal?scn().hotspots.find(x=>x.caso===i):null;
+  let h='<div class="cs'+(b?" boss":"")+'">'+(b?'<div class="carimbo suspeito">Suspeito principal</div>':"")+'<div class="fase">'+IC(ta?"clock":rv?"book":modal?"pin":"folder")+(ta?"Time Attack · questão "+(S.ta.n+S.ta.w+1)+" · "+SEEDS[S.ta.q.s].nome:rv?"Revisão · questão "+(S.rv.pos+1)+" de "+S.rv.q.length+" · "+FL[P.k].k:modal?H.nome+" · Pista "+(i+1)+" de "+N:"Fase "+(i+1)+" de "+N)+' <span class="dif d-'+P.d+'">'+df[0]+" "+df[1]+"</span></div><h2>"+IC("eye")+P.t+"</h2>"+(P.s?'<div class="story">'+M(P.s)+"</div>":"")+'<div class="q">'+IC("search")+M(P.q)+"</div>";
   if(P.tool&&!ta&&!sv&&typeof TOOLS2D!=="undefined"&&TOOLS2D[P.tool])
     h+='<div class="trow"><button type="button" class="btn cyan sm" id="tlb" aria-expanded="false" aria-controls="tool">'+IC("eye")+"Abrir ferramenta: "+TOOLS2D[P.tool].nome+'</button></div><div class="tool" id="tool" hidden></div>';
   if(P.type==="choice"){
@@ -404,7 +410,7 @@ function puzzleHTML(P,i,modal){
       '<p class="pv" id="pv" aria-live="polite"></p>'+
       '<p class="fmt" id="fmt">'+(n>1?"Resposta com "+n+" números separados por vírgula. Com decimais, use ponto (1.5) ou separe por ponto e vírgula: 2; 1,5.":"Decimais: 1.5 ou 1,5. Frações: 1/2.")+"</p>";
   }
-  if(!sv)h+='<div class="row"><button class="btn stamp" id="chk">'+IC("search")+'Analisar resposta</button>'+(ta?"":'<button class="btn cyan" id="hb"'+(d.h>=2?" disabled":"")+">"+IC("bulb")+"Pedir dica"+(INV()?"":" (−"+HINT+" HP)")+"</button>")+(modal?'<button class="btn" id="bk">'+IC("eye")+"Voltar à cena</button>":"")+"</div>";
+  if(!sv)h+='<div class="row"><button class="btn stamp" id="chk">'+IC("search")+'Analisar resposta</button>'+(ta?"":'<button class="btn cyan" id="hb"'+(d.h>=2?" disabled":"")+">"+IC("bulb")+"Pedir dica"+(INV()||rv?"":" (−"+HINT+" HP)")+"</button>")+(modal?'<button class="btn" id="bk">'+IC("eye")+"Voltar à cena</button>":"")+"</div>";
   if(modal&&iqMsg&&b)h+='<p class="iqok">'+IC("check")+iqMsg+"</p>";
   for(let k=0;k<d.h;k++)h+='<div class="hint">'+IC("bulb")+M(P.h[k])+"</div>";
   h+='<div id="fb" role="status">'+(sv?'<span class="carimbo v">Acertou!</span> <span class="good">+'+S.last+" pts · +"+HEAL+' HP</span><div class="row"><button class="btn" id="rv">'+IC("note")+'Rever dossiê</button><button class="btn stamp" id="nx">'+nextLabel()+"</button></div>":"")+"</div></div>";
@@ -418,15 +424,15 @@ function renderPuzzle(box,i,modal){
     box.querySelectorAll(".iqopt").forEach(b=>b.onclick=()=>iqPick(+b.dataset.k));
     $("bk").onclick=closePz;return;
   }
-  const key=S.ta?"ta:"+S.ta.q.s+":"+S.ta.q.i+":"+S.ta.q.rs:S.seed+":"+i,keep=($("ans")&&qk===key)?$("ans").value:"";
-  box.innerHTML=puzzleHTML(S.ta?cur():caseAt(i),i,modal);
+  const key=S.ta?"ta:"+S.ta.q.s+":"+S.ta.q.i+":"+S.ta.q.rs:S.rv?"rv:"+S.rv.pos+":"+S.rv.q[S.rv.pos].rs:S.seed+":"+i,keep=($("ans")&&qk===key)?$("ans").value:"";
+  box.innerHTML=puzzleHTML(S.ta||S.rv?cur():caseAt(i),i,modal);
   if(!modal&&enter){const c=box.firstElementChild;if(c)c.classList.add("enter");enter=false}
   box.querySelectorAll(".opt").forEach(x=>x.onclick=()=>{S.sel=+x.dataset.k;sfx("key");save();render();const c=$("chk");if(c)c.focus()});
   const a=$("ans");
   box.querySelectorAll(".sym").forEach(b=>{b.onpointerdown=e=>e.preventDefault();b.onclick=()=>ins(b.dataset.ins)});
   if(a){if(keep){a.value=keep;a.setSelectionRange(keep.length,keep.length)}a.oninput=()=>{sfx("key");preview()};preview();a.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();check()}};a.focus()}
   qk=key;
-  if($("tlb"))bindTool(caseAt(i),key);
+  if($("tlb"))bindTool(S.rv?cur():caseAt(i),key);
   if($("chk"))$("chk").onclick=check;
   if($("hb"))$("hb").onclick=hint;
   if($("bk"))$("bk").onclick=closePz;
@@ -542,6 +548,69 @@ function renderTA(g){
   renderPuzzle(g,0,false);
 }
 
+/* ============ MODO REVISÃO (repetição espaçada por conceito) ============
+   RV[conceito] = {w erros, h dicas, ok acertos, box 0–4, due quando volta}. Erros e dicas em qualquer
+   modo jogam o conceito para a caixa 0 (revisar já). Na revisão, acertar de primeira sobe uma caixa,
+   e o conceito volta depois de 1, 3, 7 ou 14 dias. Fica no navegador, entre partidas. */
+const RKEY="caso-kernel-revisao",DAY=864e5,GAP=[0,1,3,7,14],RV_MAX=8;
+let RV=(()=>{try{const o=JSON.parse(localStorage.getItem(RKEY));return o&&typeof o==="object"?o:{}}catch(e){return {}}})();
+const rvSave=()=>{try{localStorage.setItem(RKEY,JSON.stringify(RV))}catch(e){}};
+function revNote(k,ev){
+  if(!FL[k])return;const r=RV[k]||(RV[k]={w:0,h:0,ok:0,box:0,due:0}),now=Date.now();
+  if(ev==="w"||ev==="h"){r[ev]++;r.box=0;r.due=now}
+  else if(ev==="ok")r.ok++;
+  else if(ev==="up"){r.ok++;r.box=Math.min(GAP.length-1,r.box+1);r.due=now+GAP[r.box]*DAY}
+  rvSave();
+}
+const rvSeen=()=>Object.keys(RV).filter(k=>FL[k]&&RV[k].w+RV[k].h>0);
+const rvDue=()=>rvSeen().filter(k=>RV[k].due<=Date.now()).sort((a,b)=>RV[a].box-RV[b].box||(RV[b].w*2+RV[b].h)-(RV[a].w*2+RV[a].h));
+const rvWhen=k=>{const d=Math.ceil((RV[k].due-Date.now())/DAY);return d<=0?"volta na próxima revisão":d===1?"volta amanhã":"volta em "+d+" dias"};
+/* fases de cada conceito (as com sorteio primeiro, para trazer números novos) */
+const rvPhases=k=>{const a=[];SEEDS.forEach((s,si)=>s.casos.forEach((c,i)=>{if(c.k===k)a.push([si,i,typeof c.g==="function"])}));return a.sort((x,y)=>y[2]-x[2])};
+function rvStart(all){
+  const ks=(all?rvSeen():rvDue()).slice(0,RV_MAX),q=[],used=new Set();
+  for(let round=0;round<2&&q.length<RV_MAX;round++)ks.forEach(k=>{
+    if(q.length>=RV_MAX)return;
+    const ph=rvPhases(k).filter(p=>!used.has(p[0]+":"+p[1])||p[2]),gen=ph.filter(p=>p[2]),pool=gen.length?gen:ph;
+    if(!pool.length||(round&&!gen.length))return;
+    const p=pool[Math.floor(Math.random()*pool.length)];used.add(p[0]+":"+p[1]);q.push({s:p[0],i:p[1],rs:newRs(),k});
+  });
+  if(!q.length)return;
+  S=Object.assign(fresh(),{snd:S.snd,pmode:S.pmode,dz:S.dz,rv:{q,pos:0,h:0,w:0,stage:"ask",first:0,res:[],end:false}});
+  qk="";invSig=null;save();render();sfx("paper");
+}
+function rvNext(){const v=S.rv;v.pos++;v.h=0;v.w=0;v.stage="ask";S.sel=null;qk="";if(v.pos>=v.q.length)v.end=true;save();render();const f=$("ans")||$("chk")||$("again");if(f)f.focus()}
+function rvCard(){
+  const d=rvDue().length,s=rvSeen().length;
+  return '<button class="btn seedc rvc" id="rvb"'+(s?"":" disabled")+"><b>"+IC("book")+"Modo Revisão</b><br><small>"+
+    (!s?"Ainda não há o que revisar: erros e dicas nos casos entram aqui.":d?d+" conceito"+(d===1?"":"s")+" para revisar agora, com números novos. Acertar de primeira adia a próxima revisão.":"Nada pendente agora ("+s+" conceito"+(s===1?"":"s")+" em acompanhamento). Toque para revisar mesmo assim.")+"</small></button>";
+}
+function renderRV(g){
+  const v=S.rv,len=v.q.length;
+  setH($("sc"),IC("check")+v.first+"/"+len);$("sc").title="Acertos de primeira nesta revisão";$("tm").textContent="Revisão";
+  $("hpf").style.width="100%";$("hpf").className="hpf";$("hpt").textContent="—";
+  $("pf").style.width=(Math.min(v.pos,len)/len*100)+"%";$("pb").setAttribute("aria-valuenow",Math.round(Math.min(v.pos,len)/len*100));
+  $("folder").dataset.label="Modo Revisão"+(S.dz?" · Desafio "+S.dz.c:"");
+  const ks=[...new Set(v.q.map(x=>x.k))],sig="rv|"+v.pos+"|"+v.stage+"|"+v.end;
+  if(sig!==invSig){invSig=sig;$("inv").innerHTML=ks.map(k=>{const r=RV[k]||{box:0};return '<li class="cl"><b>'+IC("book")+FL[k].k+"</b>Caixa "+(r.box+1)+" de "+GAP.length+" · "+(RV[k]?rvWhen(k):"nova")+"</li>"}).join("")}
+  if(v.end){
+    qk="";
+    g.innerHTML='<div class="fim"><h2>'+IC("book")+'Revisão concluída</h2><div class="carimbo v">'+v.first+" de "+len+' de primeira</div>'+
+      '<ul class="rvres">'+ks.map(k=>{const r=RV[k];return "<li><b>"+FL[k].k+"</b> · "+(r.box?'<span class="good">subiu para a caixa '+(r.box+1)+"</span>":"continua na caixa 1")+" · "+rvWhen(k)+"</li>"}).join("")+"</ul>"+
+      '<div class="row" style="justify-content:center">'+(rvDue().length?'<button class="btn stamp" id="rvagain">'+IC("book")+"Revisar o que ficou</button>":"")+'<button class="btn" id="again">'+IC("folder")+"Voltar aos casos</button></div></div>";
+    if($("rvagain"))$("rvagain").onclick=()=>rvStart(false);$("again").onclick=reset;return;
+  }
+  if(v.stage==="ok"){
+    const P=cur(),f=FL[P.k],r=v.res[v.res.length-1];qk="";
+    g.innerHTML='<div class="cs"><div class="fase">'+IC("book")+"Revisão · questão "+(v.pos+1)+" de "+len+"</div><h2>"+IC("check")+(r&&r.f?"Certo de primeira!":"Certo.")+"</h2>"+
+      '<p class="concept rvc2"><span class="lb">Conceito</span>'+f.k+"</p>"+'<p class="story">'+M(P.e)+"</p>"+'<p class="tip rvtip"><span class="lb">Dica de prova</span>'+M(f.p)+"</p>"+
+      '<p class="rvst">'+(r&&r.f?IC("flag")+"Este conceito "+rvWhen(P.k)+".":IC("bulb")+"Com erro ou dica, o conceito continua na caixa 1 e "+rvWhen(P.k)+".")+"</p>"+
+      '<div class="row"><button class="btn stamp" id="rvn">'+(v.pos+1>=len?IC("trophy")+"Ver resumo":IC("search")+"Próxima")+"</button></div></div>";
+    $("rvn").onclick=rvNext;$("rvn").focus();return;
+  }
+  renderPuzzle(g,0,false);
+}
+
 /* ---- desafio: painel na tela de casos, link e resultado para copiar ---- */
 function dzPanel(){
   const d=S.dz;
@@ -580,8 +649,9 @@ const copyResult=()=>copyText(resultText(),"cprm","Resultado copiado.");
 /* ---- render principal ---- */
 let invSig=null;
 function render(){
-  ["pz","fc"].forEach(id=>{if(S.ta&&$(id).classList.contains("on"))closeM(id,false)});
+  ["pz","fc"].forEach(id=>{if((S.ta||S.rv)&&$(id).classList.contains("on"))closeM(id,false)});
   if(S.ta){renderTA($("game"));return}
+  if(S.rv){renderRV($("game"));return}
   setH($("sc"),IC("medal")+S.score+" pts");
   $("tm").textContent=fmt(S.t);
   setH($("snd"),IC(S.snd?"sound":"mute")+'<span class="t">'+(S.snd?"Áudio":"Mudo")+"</span>");
@@ -609,9 +679,10 @@ function render(){
     g.innerHTML='<h2>'+IC("folder")+'Escolha a investigação</h2><p class="story">Cada caso tem 10 pistas. O cronômetro começa ao abrir o arquivo.</p>'+
       '<div class="modes" role="radiogroup" aria-label="Modo de jogo">'+[["det","heart","Detetive","Erros e dicas custam vida"],["inv","book","Investigador","Sem perda de vida · pontos pela metade"]].map(m=>'<button class="btn mode" role="radio" data-m="'+m[0]+'" aria-checked="'+(pm===m[0])+'">'+IC(m[1])+"<b>"+m[2]+"</b><small>"+m[3]+"</small></button>").join("")+"</div>"+dzPanel()+
       '<div class="opts">'+SEEDS.map((s,k)=>'<button class="btn seedc" data-k="'+k+'"><b>'+s.ic+" "+s.nome+"</b><br><small>"+s.intro+" · "+(hasScene(k)?IC("search")+"Point and click":"Modo linear")+(bt(k,"det")?" · "+IC("flag")+"Detetive: "+bt(k,"det"):"")+(bt(k,"inv")?" · "+IC("flag")+"Investigador: "+bt(k,"inv"):"")+"</small></button>").join("")+
+      rvCard()+
       '<button class="btn seedc ta" id="tab"><b>'+IC("clock")+'Time Attack</b><br><small>3 minutos de problemas sorteados de todos os casos, sem vida. Erro tira '+TA_PEN/1000+" s."+(best["@ta"]!=null?" · "+IC("flag")+"Recorde: "+best["@ta"]+" pts":"")+"</small></button></div>";
     g.querySelectorAll(".mode").forEach(b=>b.onclick=()=>{S.pmode=b.dataset.m;sfx("key");save();render();const f=g.querySelector('.mode[data-m="'+S.pmode+'"]');if(f)f.focus()});
-    $("tab").onclick=taStart;dzBind();
+    $("tab").onclick=taStart;dzBind();$("rvb").onclick=()=>rvStart(!rvDue().length);
     g.querySelectorAll(".seedc[data-k]").forEach(b=>b.onclick=()=>{
       S=Object.assign(fresh(),{snd:S.snd,pmode:S.pmode,dz:S.dz,mode:S.pmode,seed:+b.dataset.k,rs:S.dz?dzSeed(S.dz.c):newRs()});
       const Dn=sceneAt(S.seed);if(Dn)S.room=Dn.salas[0].id;else S.open=0;
@@ -627,8 +698,8 @@ function render(){
   if(S.fin){
     qk="";$("pzb").innerHTML="";
     if(D){buildScene(true);paintScene();return}
-    g.innerHTML='<div class="fim"><h2>'+IC("trophy")+'Caso resolvido</h2><div class="carimbo v">Arquivado</div><p><b>'+sd.nome+"</b><br>"+IC("medal")+"Pontuação: <b>"+S.score+"</b> · "+IC("heart")+"Vida: "+S.hp+"/"+MAXHP+"<br>"+IC("clock")+"Tempo total: <b>"+fmt(S.t)+"</b> · "+IC("flag")+"Melhor: "+fmt(bestOf(S.seed))+"<br>"+modeTag()+'</p>'+weak().html+'<div class="row" style="justify-content:center"><button class="btn stamp" id="again">'+IC("folder")+'Escolher outro caso</button><button class="btn" id="cpr">'+IC("note")+'Copiar resultado</button></div><p class="dzmsg" id="cprm" role="status"></p></div>';
-    $("again").onclick=reset;$("cpr").onclick=copyResult;return;
+    g.innerHTML='<div class="fim"><h2>'+IC("trophy")+'Caso resolvido</h2><div class="carimbo v">Arquivado</div><p><b>'+sd.nome+"</b><br>"+IC("medal")+"Pontuação: <b>"+S.score+"</b> · "+IC("heart")+"Vida: "+S.hp+"/"+MAXHP+"<br>"+IC("clock")+"Tempo total: <b>"+fmt(S.t)+"</b> · "+IC("flag")+"Melhor: "+fmt(bestOf(S.seed))+"<br>"+modeTag()+'</p>'+weak().html+'<div class="row" style="justify-content:center"><button class="btn stamp" id="again">'+IC("folder")+'Escolher outro caso</button>'+(rvDue().length?'<button class="btn cyan" id="rvnow">'+IC("book")+"Revisar agora</button>":"")+'<button class="btn" id="cpr">'+IC("note")+'Copiar resultado</button></div><p class="dzmsg" id="cprm" role="status"></p></div>';
+    $("again").onclick=reset;$("cpr").onclick=copyResult;if($("rvnow"))$("rvnow").onclick=()=>rvStart(false);return;
   }
   if(D)ensureScene();
   else{
@@ -658,7 +729,9 @@ function damage(n){
   if(S.hp===0){S.over=true;S.open=null;S.fc=null;sfx("lose")}
   save();render();anim("folder","hit");
 }
-function hint(){const d=hsd(S.open);if(d.h>=2)return;d.h++;sfx("hint");damage(HINT)}
+function hint(){
+  if(S.rv){const v=S.rv;if(v.h>=2)return;v.h++;revNote(cur().k,"h");sfx("hint");save();render();return}
+  const d=hsd(S.open);if(d.h>=2)return;d.h++;revNote(cur().k,"h");sfx("hint");damage(HINT)}
 function check(){
   const P=cur(),i=S.open;let ok;
   if(S.ta&&S.ta.end)return;
@@ -667,12 +740,19 @@ function check(){
     if(r.amb)return msg("Ambíguo: com vírgula decimal, separe os números com ponto e vírgula (ex.: 2; 1,5).");
     if(r.bad)return msg("Formato inválido. Exemplos: 5,6 · 1/2 · 2; 1,5.");
     ok=r.v.length===a.length&&r.v.every((x,k)=>Math.abs(x-a[k])<1e-6)}
+  if(S.rv){
+    const v=S.rv;
+    if(ok){const f=!v.w&&!v.h,ja=v.res.some(r=>r.k===P.k&&r.f);if(f)v.first++;revNote(P.k,f&&!ja?"up":"ok");   /* no máximo uma subida de caixa por sessão */v.res.push({k:P.k,f});v.stage="ok";S.sel=null;sfx("ok");save();render();anim("folder","ok")}
+    else{v.w++;revNote(P.k,"w");sfx("no");anim("folder","hit");save();render();msg("✘ Ainda não. Tente de novo, peça uma dica ou abra a ferramenta.");suggestTool(P)}
+    return;
+  }
   if(S.ta){
-    const t=S.ta;
+    const t=S.ta;revNote(P.k,ok?"ok":"w");
     if(ok){t.score+=TA_PTS[P.d]||100;t.n++;taPick();qk="";sfx("ok");save();render();anim("folder","ok");msg('<span class="good">✔ +'+(TA_PTS[P.d]||100)+" pts. Próxima!</span>",1)}
     else{t.w++;t.left=Math.max(0,t.left-TA_PEN);sfx("no");anim("folder","hit");if(t.left<=0){taEnd();return}save();render();msg("✘ Resposta incorreta (−"+TA_PEN/1000+" s).")}
     return;
   }
+  revNote(P.k,ok?"ok":"w");
   if(ok){
     S.last=pts();S.score+=S.last;S.hp=Math.min(MAXHP,S.hp+HEAL);S.solved.push(i);S.fc=i;S.sel=null;
     const D=scn();
@@ -712,7 +792,7 @@ function reset(){
   save();render();
 }
 
-$("rs").onclick=()=>{if((S.seed===null&&!S.ta)||(S.ta&&S.ta.end)||confirm("Reiniciar e voltar à escolha de casos? O progresso atual será apagado."))reset()};
+$("rs").onclick=()=>{if((S.seed===null&&!S.ta&&!S.rv)||(S.ta&&S.ta.end)||(S.rv&&S.rv.end)||confirm("Reiniciar e voltar à escolha de casos? O progresso atual será apagado."))reset()};
 $("snd").onclick=()=>{S.snd=!S.snd;save();render();musSync()};
 $("mus").onclick=()=>{musOn=!musOn;try{localStorage.setItem(MKEY,musOn?"1":"0")}catch(e){}musSync()};
 /* o navegador só toca som depois de um gesto: a trilha salva como ligada começa no 1º toque */
@@ -739,7 +819,7 @@ document.addEventListener("keydown",e=>{
     else if(!e.shiftKey&&document.activeElement===z){e.preventDefault();a.focus()}
     return;
   }
-  if(e.ctrlKey||e.metaKey||e.altKey||S.seed===null||S.ta||S.over||S.fin)return;
+  if(e.ctrlKey||e.metaKey||e.altKey||S.seed===null||S.ta||S.rv||S.over||S.fin)return;
   if(m&&m.id!=="pz")return;
   const t=e.target.tagName;if(t==="INPUT"||t==="TEXTAREA"||t==="SELECT")return;
   if(!m&&scn()&&e.key.toLowerCase()==="h"){flashAll();return}   /* destacar objetos */
