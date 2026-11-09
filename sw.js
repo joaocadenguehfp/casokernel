@@ -3,7 +3,7 @@
    durante o desenvolvimento); sem rede, usa a cópia salva. Troque VERSAO ao
    mudar a lista de arquivos. O Three.js (vendor/) não é pré-baixado: entra no
    cache na primeira vez que uma ferramenta 3D abre (a busca abaixo guarda tudo). */
-const VERSAO="caso-kernel-v6-3";
+const VERSAO="caso-kernel-v6-4";
 const ARQUIVOS=["./","index.html","style.css","cases.js","scenes.js","tools2d.js","tools3d.js","script.js",
   "fonts/cinzel-latin.woff2","fonts/rajdhani-500-latin.woff2","fonts/rajdhani-600-latin.woff2","fonts/rajdhani-700-latin.woff2"];
 

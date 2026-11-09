@@ -70,6 +70,7 @@ g:R=>{const y=[R.nz(-7,9),R.nz(-7,9)],x=[y[0],-y[1]];
 - Prefira **sortear a resposta primeiro e montar o problema a partir dela**: assim os números ficam inteiros ou com frações simples.
 - Auxiliares de formatação: `tup`, `ttup`, `lc` (combinação linear), `poly`, `polyT`, `charStr`, `neg`, `dec`.
 - Se a arte da cena mostrar números do problema, não sorteie essa fase (ou troque os números da arte por símbolos).
+- **Estabilidade dos desafios:** links de desafio dependem de os geradores produzirem sempre os mesmos números. Ao criar, alterar ou remover um `g`, suba `SORTEIO_VERSAO` em `cases.js` e rode `node tools/validate.js --atualizar-sorteios`; sem isso, a validação falha. Links antigos continuam abrindo, com um aviso de versão.
 
 ### Ferramentas (`tool`)
 

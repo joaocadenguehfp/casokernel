@@ -257,6 +257,39 @@ const fmtAns=(a,dec)=>[].concat(a).map(v=>{
   if(JSON.stringify(pr)!==JSON.stringify(want))fail("parser: "+JSON.stringify(pr));
   report.push("parser de respostas: ok");
 
+  /* desafio da turma: mesmo link -> mesmos números em sessões diferentes (casos e Time Attack) */
+  {
+    const ver=await page.evaluate(()=>SORTEIO_VERSAO);
+    const sess=async q=>{const c=await browser.newContext({viewport:{width:1280,height:900}}),p=await c.newPage();p.on("pageerror",e=>errors.push(e.message));await p.goto(URL0+q);return {c,p}};
+    const probs=p=>p.evaluate(()=>SEEDS[S.seed].casos.map((c,i)=>caseAt(i).q).join("|"));
+    const A=await sess("?desafio=turma-1&v="+ver),B=await sess("?desafio=TURMA1&v="+ver),C=await sess("");
+    for(const s of [A,B,C]){await s.p.locator(".seedc[data-k]").nth(3).click();await s.p.waitForSelector("#scene")}
+    const [pa,pb,pc]=[await probs(A.p),await probs(B.p),await probs(C.p)];
+    if(pa!==pb)fail("desafio: duas sessões com o mesmo código receberam problemas diferentes");
+    if(pa===pc)fail("desafio: sessão sem desafio recebeu os mesmos números");
+    const rt=await A.p.evaluate(()=>resultText());
+    if(!/Desafio TURMA1/.test(rt)||!rt.includes("desafio=TURMA1&v="+ver))fail("desafio: resultado copiado sem o código e o link: "+rt);
+    /* Time Attack em desafio: mesma sequência de questões */
+    for(const s of [A,B]){await s.p.evaluate(()=>reset());await s.p.click("#tab");await s.p.waitForSelector("#ans")}
+    for(let k=0;k<3;k++){
+      const qa=await A.p.evaluate(()=>cur().q),qb=await B.p.evaluate(()=>cur().q);
+      if(qa!==qb)fail("desafio: Time Attack com questões diferentes na rodada "+k);
+      for(const s of [A,B]){const a=await s.p.evaluate(()=>cur().a);await s.p.fill("#ans",fmtAns(a,false));await s.p.click("#chk");await s.p.waitForFunction(n=>S.ta.n===n,k+1)}
+    }
+    /* sair do desafio limpa o link; criar um novo gera código e link */
+    await C.p.evaluate(()=>reset());await C.p.waitForSelector("#dzc");await C.p.click("#dzc");
+    const nd=await C.p.evaluate(()=>({c:S.dz&&S.dz.c,l:$("dzl").value,u:location.search}));
+    if(!/^[A-Z0-9]{6}$/.test(nd.c||"")||!nd.l.includes("desafio="+nd.c)||!nd.u.includes(nd.c))fail("criar desafio falhou: "+JSON.stringify(nd));
+    await C.p.click("#dzx");
+    if(await C.p.evaluate(()=>S.dz!==null||location.search!==""))fail("sair do desafio não limpou o estado e o link");
+    /* link de uma versão antiga dos sorteios: abre com aviso */
+    await C.p.goto(URL0+"?desafio=VELHO1&v="+(ver-1));
+    if(!(await C.p.locator(".dz .dzw").count()))fail("desafio de outra versão abriu sem aviso");
+    await shot("desafio");
+    for(const s of [A,B,C])await s.c.close();
+    report.push("desafio da turma: ok (casos e Time Attack iguais com o mesmo código)");
+  }
+
   /* erro numa fase com ferramenta fechada: o jogo sugere abri-la */
   {
     await wipe();

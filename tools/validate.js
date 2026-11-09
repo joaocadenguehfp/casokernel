@@ -14,8 +14,9 @@ const fs=require("fs"),path=require("path"),vm=require("vm");
 const ROOT=path.join(__dirname,"..");
 const ctx={console};vm.createContext(ctx);
 vm.runInContext(["cases.js","scenes.js","tools2d.js","tools3d.js"].map(f=>fs.readFileSync(path.join(ROOT,f),"utf8")).join("\n;\n")+
-  "\n;this.SEEDS=SEEDS;this.FL=FL;this.SCENES=typeof SCENES!=='undefined'?SCENES:{};this.mkR=typeof mkR!=='undefined'?mkR:null;this.TOOLS2D=typeof TOOLS2D!=='undefined'?TOOLS2D:{};",ctx);
-const {SEEDS,FL,SCENES,mkR,TOOLS2D}=ctx;
+  "\n;this.SEEDS=SEEDS;this.FL=FL;this.SCENES=typeof SCENES!=='undefined'?SCENES:{};this.mkR=typeof mkR!=='undefined'?mkR:null;this.SORTEIO_VERSAO=typeof SORTEIO_VERSAO!=='undefined'?SORTEIO_VERSAO:null;this.TOOLS2D=typeof TOOLS2D!=='undefined'?TOOLS2D:{};",ctx);
+const {SEEDS,FL,SCENES,mkR,TOOLS2D,SORTEIO_VERSAO}=ctx;
+const ATUALIZAR=process.argv.includes("--atualizar-sorteios");
 
 const errs=[],warns=[];
 const E=(w,m)=>errs.push(w+": "+m),W=(w,m)=>warns.push(w+": "+m);
@@ -292,10 +293,38 @@ for(const k in svgIds)if(svgIds[k].size>1){
   if(scenes.size>1)W("svg id "+k,"repetido em cenas diferentes: "+[...svgIds[k]].join(", "));
 }
 
+/* ---------- estabilidade dos sorteios (links de desafio) ----------
+   A semente de cada fase é derivada como em caseOf (script.js); as duas contas precisam ser iguais. */
+const fnv=s=>{let h=0x811c9dc5;for(const ch of s)h=Math.imul(h^ch.charCodeAt(0),16777619);return (h>>>0).toString(36)};
+const seedOf=(rs,id,i)=>{let h=rs^0x9E3779B9;for(const ch of id+":"+i)h=Math.imul(h^ch.charCodeAt(0),16777619);return h>>>0};
+const snap={versao:SORTEIO_VERSAO,fases:{},timeAttack:[]};
+if(mkR&&Number.isInteger(SORTEIO_VERSAO)){
+  SEEDS.forEach(s=>(s.casos||[]).forEach((P,i)=>{
+    if(typeof P.g!=="function")return;
+    snap.fases[s.id+":"+i]=[1,2,3,987654321].map(rs=>{const G=P.g(mkR(seedOf(rs,s.id,i)));return fnv(JSON.stringify([G.q,G.a,G.h,G.e,G.p]))}).join(".");
+    snap.timeAttack.push(s.id+":"+i);
+  }));
+  const SF=path.join(__dirname,"sorteios.json");
+  if(ATUALIZAR){
+    if(errs.length)E("sorteios","há erros; corrija antes de atualizar tools/sorteios.json");
+    else{fs.writeFileSync(SF,JSON.stringify(snap,null,1)+"\n");console.log("tools/sorteios.json atualizado (versão "+SORTEIO_VERSAO+", "+Object.keys(snap.fases).length+" geradores).")}
+  }else if(!fs.existsSync(SF))E("sorteios","tools/sorteios.json não existe: rode node tools/validate.js --atualizar-sorteios");
+  else{
+    const old=JSON.parse(fs.readFileSync(SF,"utf8"));
+    if(old.versao!==SORTEIO_VERSAO)E("sorteios","SORTEIO_VERSAO é "+SORTEIO_VERSAO+" mas tools/sorteios.json é da versão "+old.versao+": rode node tools/validate.js --atualizar-sorteios");
+    else{
+      const ks=new Set(Object.keys(old.fases).concat(Object.keys(snap.fases)));
+      const mud=[...ks].filter(k=>old.fases[k]!==snap.fases[k]);
+      if(mud.length)E("sorteios","os geradores de "+mud.join(", ")+" mudaram sem subir SORTEIO_VERSAO: links de desafio antigos dariam outros números. Suba SORTEIO_VERSAO em cases.js e rode node tools/validate.js --atualizar-sorteios");
+      if(JSON.stringify(old.timeAttack)!==JSON.stringify(snap.timeAttack))E("sorteios","a lista de fases do Time Attack mudou sem subir SORTEIO_VERSAO (o Time Attack em desafio mudaria de sequência)");
+    }
+  }
+}else E("sorteios","cases.js precisa definir SORTEIO_VERSAO (inteiro) e mkR");
+
 /* ---------- relatório ---------- */
 warns.forEach(m=>console.log("aviso  "+m));
 errs.forEach(m=>console.log("ERRO   "+m));
 const nc=SEEDS.reduce((s,x)=>s+(x.casos||[]).length,0);
-console.log("\n"+SEEDS.length+" casos, "+nc+" fases ("+gens+" com sorteio × "+SAMPLES+"), "+Object.keys(SCENES).length+" cenas. "+
+console.log("\n"+SEEDS.length+" casos, "+nc+" fases ("+gens+" com sorteio × "+SAMPLES+", versão dos sorteios "+SORTEIO_VERSAO+"), "+Object.keys(SCENES).length+" cenas. "+
   (errs.length?errs.length+" erro(s).":"Tudo certo.")+(warns.length?" "+warns.length+" aviso(s).":""));
 process.exit(errs.length?1:0);

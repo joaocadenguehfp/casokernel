@@ -461,3 +461,12 @@ li.lk{--frame:linear-gradient(rgba(212,175,55,.35),rgba(212,175,55,.35));--ln:rg
 /* ---------- Sugestão de ferramenta após erro ---------- */
 .tsg{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:10px 0 0;font:500 1rem var(--ui);color:#d6f4ff}
 .tsg .ic{color:var(--cyan)}
+
+/* ---------- Desafio da turma ---------- */
+.dz{margin:0 0 16px;padding:12px 16px;border-left:3px solid var(--gold);background:linear-gradient(90deg,rgba(212,175,55,.1),transparent)}
+.dz.on{border-left-color:var(--cyan);background:linear-gradient(90deg,rgba(79,195,247,.12),transparent)}
+.dz p{margin:0 0 6px}.dz .ic{color:var(--gold2)}.dz.on .ic{color:var(--cyan)}
+.dz .row{margin-top:8px}
+.dzl{flex:1;min-width:200px;min-height:40px;font:600 .95rem var(--ui);color:var(--cyan2);border-bottom-width:1px}
+.dzw{color:#ffd9b0}
+.dzmsg{min-height:1.2em;margin:6px 0 0;color:#8cf0c9;font-size:.95rem}

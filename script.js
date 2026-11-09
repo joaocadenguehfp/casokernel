@@ -20,6 +20,18 @@ const LEGACY=["cofre","fantasma","dependencia"];   /* ordem dos casos até o sav
 const idxOf=id=>{const k=SID.indexOf(id);return k<0?null:k};
 const hasScene=i=>i!==null&&i!==undefined&&!!SCN[SID[i]];
 const scCache={};
+/* ============ DESAFIO DA TURMA ============
+   ?desafio=CÓDIGO&v=N: a semente da partida vem do código, então todos com o mesmo link recebem
+   os mesmos números (nos casos e no Time Attack). v é a SORTEIO_VERSAO de quando o link foi criado;
+   se for outra, o jogo avisa que os números podem diferir. */
+const DZ_ABC="ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+const fnv32=s=>{let h=0x811c9dc5;for(const ch of s)h=Math.imul(h^ch.charCodeAt(0),16777619);return h>>>0};
+const dzNorm=c=>String(c||"").toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,12);
+const dzClean=d=>d&&typeof d==="object"&&dzNorm(d.c).length>=4?{c:dzNorm(d.c),v:Number.isInteger(d.v)?d.v:SORTEIO_VERSAO}:null;
+const dzSeed=c=>fnv32("desafio:"+c)||1;
+const dzLink=d=>location.href.split(/[?#]/)[0]+"?desafio="+d.c+"&v="+d.v;
+const dzNew=()=>Array.from({length:6},()=>DZ_ABC[Math.floor(Math.random()*DZ_ABC.length)]).join("");
+
 /* Time Attack: todas as fases com sorteio, de todos os casos */
 const TA_POOL=SEEDS.flatMap((s,k)=>s.casos.map((c,i)=>typeof c.g==="function"?[k,i]:null).filter(Boolean));
 const sceneAt=i=>{if(!hasScene(i))return null;const id=SID[i];return scCache[id]||(scCache[id]=typeof SCN[id]==="function"?SCN[id]():SCN[id])};
@@ -32,7 +44,7 @@ const sceneAt=i=>{if(!hasScene(i))return null;const id=SID[i];return scCache[id]
 /* rs: semente da partida (sorteio dos problemas com g, ver cases.js) */
 const newRs=()=>Math.floor(Math.random()*4294967296);
 const TA_MS=180000,TA_PEN=10000,TA_PTS={f:50,m:100,d:150,b:200};
-const fresh=()=>({seed:null,iq:0,mode:"det",pmode:"det",ta:null,rs:0,hp:MAXHP,score:0,solved:[],hs:{},open:null,sv:false,sel:null,fc:null,last:0,room:null,snd:true,over:false,fin:false,t:0});
+const fresh=()=>({seed:null,dz:null,iq:0,mode:"det",pmode:"det",ta:null,rs:0,hp:MAXHP,score:0,solved:[],hs:{},open:null,sv:false,sel:null,fc:null,last:0,room:null,snd:true,over:false,fin:false,t:0});
 const rdj=k=>{try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}};
 const sceneOf=s=>sceneAt(s.seed);
 const isAv=(s,i)=>{
@@ -64,10 +76,10 @@ function loadBest(){
 }
 function sanitize(s){
   const n=(v,a,b,f)=>Number.isFinite(v)&&v>=a&&v<=b?v:f;
-  const base=Object.assign(fresh(),{snd:s.snd!==false,pmode:s.pmode==="inv"?"inv":"det"});
+  const base=Object.assign(fresh(),{snd:s.snd!==false,pmode:s.pmode==="inv"?"inv":"det",dz:dzClean(s.dz)});
   const t=s.ta;
   if(t&&typeof t==="object"&&t.q&&TA_POOL.some(p=>p[0]===t.q.s&&p[1]===t.q.i)){
-    base.ta={left:n(t.left,0,TA_MS,TA_MS),score:n(t.score,0,1e7,0),n:n(t.n,0,1e5,0),w:n(t.w,0,1e5,0),end:!!t.end,
+    base.ta={left:n(t.left,0,TA_MS,TA_MS),score:n(t.score,0,1e7,0),n:n(t.n,0,1e5,0),w:n(t.w,0,1e5,0),end:!!t.end,dz:t.dz?dzNorm(t.dz):null,
       q:{s:t.q.s,i:t.q.i,rs:Number.isInteger(t.q.rs)?t.q.rs:newRs()}};
     return base;
   }
@@ -91,7 +103,12 @@ function sanitize(s){
   }
   return r;
 }
-let S=sanitize(load()),best=loadBest(),tk=Date.now(),qk="",enter=false;
+let S=sanitize(load());
+{ /* link com ?desafio= ativa o desafio (vale para os casos e o Time Attack começados a partir daqui) */
+  const q=new URLSearchParams(location.search),c=dzNorm(q.get("desafio"));
+  if(c.length>=4)S.dz={c,v:/^\d+$/.test(q.get("v")||"")?+q.get("v"):SORTEIO_VERSAO};
+}
+let best=loadBest(),tk=Date.now(),qk="",enter=false;
 const save=()=>{try{
   localStorage.setItem(KEY,JSON.stringify(Object.assign({},S,{seed:S.seed===null?null:SID[S.seed]})));
   localStorage.setItem(BKEY,JSON.stringify(best));
@@ -277,13 +294,13 @@ function buildScene(final){
   if(DEBUG)h+='<output class="dbgxy" id="dbgxy">x, y</output>';
   h+='</div></div><p class="keys pan">Arraste a cena para os lados para explorar.</p><div class="dlg" id="dlg" role="status" aria-live="polite"></div>';
   if(final){
-    h+='<div class="fim"><h2>'+IC("trophy")+'Caso resolvido</h2><div class="carimbo v">Arquivado</div><p class="story">'+D.final.texto+"</p><p><b>"+SEEDS[S.seed].nome+"</b><br>"+IC("medal")+"Pontuação: <b>"+S.score+"</b> · "+IC("heart")+"Vida: "+S.hp+"/"+MAXHP+"<br>"+IC("clock")+"Tempo total: <b>"+fmt(S.t)+"</b> · "+IC("flag")+"Melhor: "+fmt(bestOf(S.seed))+"<br>"+modeTag()+'</p>'+weak().html+'<button class="btn stamp" id="again">'+IC("folder")+"Escolher outro caso</button></div>";
+    h+='<div class="fim"><h2>'+IC("trophy")+'Caso resolvido</h2><div class="carimbo v">Arquivado</div><p class="story">'+D.final.texto+"</p><p><b>"+SEEDS[S.seed].nome+"</b><br>"+IC("medal")+"Pontuação: <b>"+S.score+"</b> · "+IC("heart")+"Vida: "+S.hp+"/"+MAXHP+"<br>"+IC("clock")+"Tempo total: <b>"+fmt(S.t)+"</b> · "+IC("flag")+"Melhor: "+fmt(bestOf(S.seed))+"<br>"+modeTag()+'</p>'+weak().html+'<div class="row" style="justify-content:center"><button class="btn stamp" id="again">'+IC("folder")+'Escolher outro caso</button><button class="btn" id="cpr">'+IC("note")+'Copiar resultado</button></div><p class="dzmsg" id="cprm" role="status"></p></div>';
   }
   g.innerHTML=h;
   g.querySelectorAll(".hs").forEach(b=>b.onclick=()=>hsClick(+b.dataset.k));
   g.querySelectorAll("[data-room]").forEach(b=>b.onclick=()=>{if(S.room!==b.dataset.room)sfx("door");S.room=b.dataset.room;save();render()});
   if($("hlt"))$("hlt").onclick=flashAll;
-  if(final)$("again").onclick=reset;
+  if(final){$("again").onclick=reset;$("cpr").onclick=copyResult}
   const sc0=$("scene");sc0.classList.add("nt");paintScene();   /* 1ª pintura sem transição */
   requestAnimationFrame(()=>requestAnimationFrame(()=>sc0.classList.remove("nt")));
   const w=$("sw");w.scrollLeft=(w.scrollWidth-w.clientWidth)/2;
@@ -489,11 +506,17 @@ function fillFC(i){
 const modeTag=()=>'<span class="mtag">'+IC(INV()?"book":"heart")+"Modo "+(INV()?"Investigador":"Detetive")+"</span>";
 const paintTaBar=()=>{$("pf").style.width=(S.ta.left/TA_MS*100)+"%";$("pb").setAttribute("aria-valuenow",Math.round(S.ta.left/TA_MS*100))};
 function taPick(){
-  const t=S.ta,ok=TA_POOL.filter(p=>!(t.q&&p[0]===t.q.s&&p[1]===t.q.i)),p=ok[Math.floor(Math.random()*ok.length)];
+  const t=S.ta;
+  if(t.dz){ /* desafio: a k-ésima questão depende só do código e de k (k = acertos até agora) */
+    const R=mkR(fnv32("desafio:"+t.dz+":ta:"+t.n));let k=R.int(0,TA_POOL.length-1);
+    if(t.q&&TA_POOL[k][0]===t.q.s&&TA_POOL[k][1]===t.q.i)k=(k+1)%TA_POOL.length;
+    t.q={s:TA_POOL[k][0],i:TA_POOL[k][1],rs:R.int(1,2147483646)};return;
+  }
+  const ok=TA_POOL.filter(p=>!(t.q&&p[0]===t.q.s&&p[1]===t.q.i)),p=ok[Math.floor(Math.random()*ok.length)];
   t.q={s:p[0],i:p[1],rs:newRs()};
 }
 function taStart(){
-  S=Object.assign(fresh(),{snd:S.snd,pmode:S.pmode,ta:{left:TA_MS,score:0,n:0,w:0,end:false,q:null}});
+  S=Object.assign(fresh(),{snd:S.snd,pmode:S.pmode,dz:S.dz,ta:{left:TA_MS,score:0,n:0,w:0,end:false,q:null,dz:S.dz?S.dz.c:null}});
   taPick();tk=Date.now();qk="";save();render();
 }
 function taEnd(){
@@ -505,19 +528,54 @@ function renderTA(g){
   const t=S.ta;
   setH($("sc"),IC("medal")+t.score+" pts");$("tm").textContent=fmt(t.left);paintTaBar();
   $("hpf").style.width="100%";$("hpf").className="hpf";$("hpt").textContent="—";
-  $("folder").dataset.label="Time Attack · 3 minutos";
+  $("folder").dataset.label="Time Attack · 3 minutos"+(t.dz?" · Desafio "+t.dz:"");
   const sig="ta|"+t.n+"|"+t.w+"|"+t.end+"|"+best["@ta"];
   if(sig!==invSig){invSig=sig;$("inv").innerHTML='<li class="cl"><b>'+IC("check")+"Acertos: "+t.n+"</b>Cada acerto vale de "+TA_PTS.f+" a "+TA_PTS.b+" pontos, pela dificuldade.</li>"+
     '<li class="cl"><b>'+IC("clock")+"Erros: "+t.w+"</b>Cada erro tira "+TA_PEN/1000+" segundos.</li>"+
     '<li class="cl"><b>'+IC("flag")+"Recorde: "+(best["@ta"]||0)+" pts</b>Problemas sorteados de todos os casos.</li>"}
   if(t.end){
     qk="";
-    g.innerHTML='<div class="fim"><h2>'+IC("clock")+'Tempo esgotado</h2><div class="carimbo v">Time Attack</div><p>'+IC("medal")+"Pontuação: <b>"+t.score+"</b> · "+IC("check")+"Acertos: "+t.n+" · Erros: "+t.w+"<br>"+IC("flag")+"Recorde: <b>"+(best["@ta"]||0)+"</b></p>"+
-      '<div class="row" style="justify-content:center"><button class="btn stamp" id="tagain">'+IC("reset")+'Jogar de novo</button><button class="btn" id="again">'+IC("folder")+"Escolher outro modo</button></div></div>";
-    $("tagain").onclick=taStart;$("again").onclick=reset;return;
+    g.innerHTML='<div class="fim"><h2>'+IC("clock")+'Tempo esgotado</h2><div class="carimbo v">Time Attack</div><p>'+IC("medal")+"Pontuação: <b>"+t.score+"</b> · "+IC("check")+"Acertos: "+t.n+" · Erros: "+t.w+"<br>"+IC("flag")+"Recorde: <b>"+(best["@ta"]||0)+"</b>"+(t.dz?"<br>Desafio <b>"+t.dz+"</b>":"")+"</p>"+
+      '<div class="row" style="justify-content:center"><button class="btn stamp" id="tagain">'+IC("reset")+'Jogar de novo</button><button class="btn" id="cpr">'+IC("note")+'Copiar resultado</button><button class="btn" id="again">'+IC("folder")+'Escolher outro modo</button></div><p class="dzmsg" id="cprm" role="status"></p></div>';
+    $("tagain").onclick=taStart;$("again").onclick=reset;$("cpr").onclick=copyResult;return;
   }
   renderPuzzle(g,0,false);
 }
+
+/* ---- desafio: painel na tela de casos, link e resultado para copiar ---- */
+function dzPanel(){
+  const d=S.dz;
+  if(!d)return '<div class="dz"><p>'+IC("flag")+'<b>Desafio da turma:</b> crie um link e mande para a turma. Quem abrir recebe os mesmos números em todos os casos e no Time Attack.</p><div class="row"><button type="button" class="btn sm cyan" id="dzc">'+IC("flag")+"Criar desafio</button></div></div>";
+  const old=d.v!==SORTEIO_VERSAO;
+  return '<div class="dz on"><p>'+IC("flag")+"<b>Desafio "+d.c+" ativo.</b> Os casos e o Time Attack que você começar agora usam os mesmos números de todos com este link.</p>"+
+    (old?'<p class="dzw">'+IC("bulb")+"Este link foi criado com a versão "+d.v+" dos problemas, e o jogo está na versão "+SORTEIO_VERSAO+": os números podem ser diferentes dos de quem jogou antes da atualização.</p>":"")+
+    '<div class="row"><input id="dzl" class="dzl" readonly aria-label="Link do desafio" value="'+dzLink(d)+'"><button type="button" class="btn sm cyan" id="dzk">'+IC("note")+'Copiar link</button><button type="button" class="btn sm" id="dzx">Sair do desafio</button></div><p class="dzmsg" id="dzm" role="status"></p></div>';
+}
+function dzBind(){
+  if($("dzc"))$("dzc").onclick=()=>{S.dz={c:dzNew(),v:SORTEIO_VERSAO};history.replaceState(null,"",dzLink(S.dz));save();render();copyText(dzLink(S.dz),"dzm","Link copiado: mande para a turma.")};
+  if($("dzk"))$("dzk").onclick=()=>copyText(dzLink(S.dz),"dzm","Link copiado: mande para a turma.");
+  if($("dzx"))$("dzx").onclick=()=>{S.dz=null;history.replaceState(null,"",location.href.split(/[?#]/)[0]);save();render()};
+  if($("dzl"))$("dzl").onfocus=e=>e.target.select();
+}
+function copyText(t,outId,okMsg){
+  const done=ok=>{const o=$(outId);if(o)o.textContent=ok?okMsg:"Não deu para copiar automaticamente: selecione o texto e copie."};
+  try{navigator.clipboard.writeText(t).then(()=>done(true),()=>done(false))}catch(e){done(false)}
+  sfx("key");
+}
+/* texto para colar no grupo da turma */
+function resultText(){
+  const L=["Caso Kernel"+((S.ta?S.ta.dz:S.dz&&S.dz.c)?" · Desafio "+(S.ta?S.ta.dz:S.dz.c):"")];
+  if(S.ta)L.push("Time Attack: "+S.ta.score+" pts · "+S.ta.n+" acertos · "+S.ta.w+" erros");
+  else{
+    let w=0,h=0;for(const k in S.hs){w+=S.hs[k].w;h+=S.hs[k].h}
+    L.push(SEEDS[S.seed].nome+" (modo "+(INV()?"Investigador":"Detetive")+"): "+S.score+" pts · "+fmt(S.t)+" · "+w+" erro"+(w===1?"":"s")+" · "+h+" dica"+(h===1?"":"s")+(INV()?"":" · "+S.hp+" HP"));
+    L.push(weak().txt);
+  }
+  const d=S.ta?(S.ta.dz?{c:S.ta.dz,v:S.dz&&S.dz.c===S.ta.dz?S.dz.v:SORTEIO_VERSAO}:null):S.dz;
+  L.push(d?dzLink(d):location.href.split(/[?#]/)[0]);
+  return L.join("\n");
+}
+const copyResult=()=>copyText(resultText(),"cprm","Resultado copiado.");
 
 /* ---- render principal ---- */
 let invSig=null;
@@ -532,7 +590,7 @@ function render(){
   $("hpt").textContent=S.seed!==null&&INV()?"Sem dano":S.hp+"/"+MAXHP;$("hp").setAttribute("aria-valuenow",S.hp);
   const sd=S.seed===null?null:SEEDS[S.seed],D=scn(),done=sd?S.solved.length:0;
   $("pf").style.width=(done/N*100)+"%";$("pb").setAttribute("aria-valuenow",done*10);
-  $("folder").dataset.label="Caso nº 0417"+(sd?" · "+sd.nome:"");
+  $("folder").dataset.label="Caso nº 0417"+(sd?" · "+sd.nome:"")+(S.dz?" · Desafio "+S.dz.c:"");
   const sig=S.seed+"|"+S.solved.join(",");   /* refaz o inventário só quando muda */
   if(sig!==invSig){invSig=sig;
   $("inv").innerHTML=sd?Array.from({length:N},(_,k)=>S.solved.includes(k)?'<li class="cl"><button class="rl" data-k="'+k+'"><b>'+IC("pin")+sd.casos[k].t+"</b>"+FL[sd.casos[k].k].k+"</button></li>":'<li class="cl lk">'+IC("lock")+"Pista "+(k+1)+" oculta</li>").join(""):'<li class="cl lk">'+IC("lock")+"Escolha uma investigação.</li>";
@@ -549,13 +607,13 @@ function render(){
     qk="";$("pzb").innerHTML="";
     const pm=S.pmode,bt=(k,m)=>bestOf(k,m)!=null?fmt(bestOf(k,m)):null;
     g.innerHTML='<h2>'+IC("folder")+'Escolha a investigação</h2><p class="story">Cada caso tem 10 pistas. O cronômetro começa ao abrir o arquivo.</p>'+
-      '<div class="modes" role="radiogroup" aria-label="Modo de jogo">'+[["det","heart","Detetive","Erros e dicas custam vida"],["inv","book","Investigador","Sem perda de vida · pontos pela metade"]].map(m=>'<button class="btn mode" role="radio" data-m="'+m[0]+'" aria-checked="'+(pm===m[0])+'">'+IC(m[1])+"<b>"+m[2]+"</b><small>"+m[3]+"</small></button>").join("")+"</div>"+
+      '<div class="modes" role="radiogroup" aria-label="Modo de jogo">'+[["det","heart","Detetive","Erros e dicas custam vida"],["inv","book","Investigador","Sem perda de vida · pontos pela metade"]].map(m=>'<button class="btn mode" role="radio" data-m="'+m[0]+'" aria-checked="'+(pm===m[0])+'">'+IC(m[1])+"<b>"+m[2]+"</b><small>"+m[3]+"</small></button>").join("")+"</div>"+dzPanel()+
       '<div class="opts">'+SEEDS.map((s,k)=>'<button class="btn seedc" data-k="'+k+'"><b>'+s.ic+" "+s.nome+"</b><br><small>"+s.intro+" · "+(hasScene(k)?IC("search")+"Point and click":"Modo linear")+(bt(k,"det")?" · "+IC("flag")+"Detetive: "+bt(k,"det"):"")+(bt(k,"inv")?" · "+IC("flag")+"Investigador: "+bt(k,"inv"):"")+"</small></button>").join("")+
       '<button class="btn seedc ta" id="tab"><b>'+IC("clock")+'Time Attack</b><br><small>3 minutos de problemas sorteados de todos os casos, sem vida. Erro tira '+TA_PEN/1000+" s."+(best["@ta"]!=null?" · "+IC("flag")+"Recorde: "+best["@ta"]+" pts":"")+"</small></button></div>";
     g.querySelectorAll(".mode").forEach(b=>b.onclick=()=>{S.pmode=b.dataset.m;sfx("key");save();render();const f=g.querySelector('.mode[data-m="'+S.pmode+'"]');if(f)f.focus()});
-    $("tab").onclick=taStart;
+    $("tab").onclick=taStart;dzBind();
     g.querySelectorAll(".seedc[data-k]").forEach(b=>b.onclick=()=>{
-      S=Object.assign(fresh(),{snd:S.snd,pmode:S.pmode,mode:S.pmode,seed:+b.dataset.k,rs:newRs()});
+      S=Object.assign(fresh(),{snd:S.snd,pmode:S.pmode,dz:S.dz,mode:S.pmode,seed:+b.dataset.k,rs:S.dz?dzSeed(S.dz.c):newRs()});
       const Dn=sceneAt(S.seed);if(Dn)S.room=Dn.salas[0].id;else S.open=0;
       tk=Date.now();dlgSeed=null;lastHS=null;save();render();
     });
@@ -569,8 +627,8 @@ function render(){
   if(S.fin){
     qk="";$("pzb").innerHTML="";
     if(D){buildScene(true);paintScene();return}
-    g.innerHTML='<div class="fim"><h2>'+IC("trophy")+'Caso resolvido</h2><div class="carimbo v">Arquivado</div><p><b>'+sd.nome+"</b><br>"+IC("medal")+"Pontuação: <b>"+S.score+"</b> · "+IC("heart")+"Vida: "+S.hp+"/"+MAXHP+"<br>"+IC("clock")+"Tempo total: <b>"+fmt(S.t)+"</b> · "+IC("flag")+"Melhor: "+fmt(bestOf(S.seed))+"<br>"+modeTag()+'</p>'+weak().html+'<button class="btn stamp" id="again">'+IC("folder")+"Escolher outro caso</button></div>";
-    $("again").onclick=reset;return;
+    g.innerHTML='<div class="fim"><h2>'+IC("trophy")+'Caso resolvido</h2><div class="carimbo v">Arquivado</div><p><b>'+sd.nome+"</b><br>"+IC("medal")+"Pontuação: <b>"+S.score+"</b> · "+IC("heart")+"Vida: "+S.hp+"/"+MAXHP+"<br>"+IC("clock")+"Tempo total: <b>"+fmt(S.t)+"</b> · "+IC("flag")+"Melhor: "+fmt(bestOf(S.seed))+"<br>"+modeTag()+'</p>'+weak().html+'<div class="row" style="justify-content:center"><button class="btn stamp" id="again">'+IC("folder")+'Escolher outro caso</button><button class="btn" id="cpr">'+IC("note")+'Copiar resultado</button></div><p class="dzmsg" id="cprm" role="status"></p></div>';
+    $("again").onclick=reset;$("cpr").onclick=copyResult;return;
   }
   if(D)ensureScene();
   else{
@@ -649,7 +707,7 @@ function next(){
   if(scn())backFocus();
 }
 function reset(){
-  const s=S.snd,pm=S.pmode;S=fresh();iqMsg="";S.snd=s;S.pmode=pm;qk="";dlgSeed=null;lastHS=null;invSig=null;
+  const s=S.snd,pm=S.pmode,dz=S.dz;S=fresh();iqMsg="";S.snd=s;S.pmode=pm;S.dz=dz;qk="";dlgSeed=null;lastHS=null;invSig=null;
   if($("ov").classList.contains("on"))closeM("ov",false);
   save();render();
 }

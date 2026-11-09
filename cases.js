@@ -15,6 +15,14 @@
          g não pode trocar t, k, d nem type. Os campos fixos valem como padrão.
    ===================================================================== */
 
+/* ---- versão dos sorteios ----
+   Um link de desafio (?desafio=CÓDIGO&v=N) só dá os mesmos números para todos se os
+   geradores não mudarem. Ao alterar qualquer g (ou acrescentar/remover um), suba este
+   número e rode  node tools/validate.js --atualizar-sorteios : o validador guarda em
+   tools/sorteios.json o que cada gerador produz e falha se algo mudar sem a versão subir.
+   Links com a versão antiga continuam abrindo, com um aviso. */
+const SORTEIO_VERSAO=1;
+
 /* ---- gerador pseudoaleatório reprodutível (mulberry32) ---- */
 function mkR(seed){
   let a=seed>>>0;

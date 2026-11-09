@@ -34,6 +34,7 @@ Cada caso tem 10 pistas, da mais fácil ao chefão, e termina com um interrogat�
   - **Investigador:** sem perda de vida, para estudar no próprio ritmo.
   - **Time Attack:** 3 minutos de problemas sorteados de todos os casos.
 - **Números sorteados:** a cada partida, 22 dos 40 problemas mudam de números, então não dá para decorar as respostas.
+- **Desafio da turma:** na tela de casos, **Criar desafio** gera um link como `case-kernel.vercel.app/?desafio=K7XQ2M&v=1`. Todos que abrirem o link recebem os mesmos números nos casos e no Time Attack. No fim, **Copiar resultado** gera um texto com pontos, tempo, erros e conceitos a revisar para colar no grupo da turma.
 
 ## Ferramentas para enxergar a matemática
 
@@ -86,6 +87,8 @@ npm test
 - **`npm run smoke`** (`tools/smoke.js`): joga todos os casos no Chromium, erra e pede dica de propósito, usa cada ferramenta e recarrega no meio da partida. `npm run smoke:mobile` faz o mesmo em tela de celular.
 
 Os dois rodam automaticamente no GitHub a cada push e pull request.
+
+O validador também guarda em `tools/sorteios.json` o que cada gerador de problema produz. Se um gerador mudar sem subir `SORTEIO_VERSAO` em `cases.js`, a validação falha: assim, um link de desafio nunca muda de números sem aviso. Ao mudar um gerador de propósito, suba a versão e rode `node tools/validate.js --atualizar-sorteios`.
 
 ## Estrutura
 
